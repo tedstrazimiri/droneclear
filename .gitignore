@@ -1,0 +1,33 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+db.sqlite3
+*.sqlite3
+*.log
+
+# Virtual environment
+venv/
+env/
+.env
+.venv/
+
+# Django collected static
+staticfiles/
+static_collected/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Windows reserved filenames (accidentally created)
+nul
+
+# Claude project files
+.claude/

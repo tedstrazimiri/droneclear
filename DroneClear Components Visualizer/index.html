@@ -1,0 +1,434 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Models Builder</title>
+    <!-- Modern Typography: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="{% static 'style.css' %}?v=3">
+    <!-- Phosphor Icons for premium SVG icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Mobile Nav Toggle -->
+        <button class="mobile-nav-toggle" id="mobile-nav-toggle" style="display: none;">
+            <i class="ph ph-list" style="font-size: 24px;"></i>
+        </button>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header" style="position: relative;">
+                <div class="logo">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/cf/Flag_of_Canada.svg"
+                        alt="Canadian Flag"
+                        style="width: 28px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <span data-i18n="appTitle">DroneClear Configurator</span>
+                </div>
+
+                <!-- Version & Settings (Moved from hovering footer) -->
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 8px 12px; background: var(--bg-dark); border-radius: var(--radius-sm); border: 1px solid var(--border-color); box-shadow: var(--inset-shadow);">
+                    <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">v1.0.0 | Build 26 | <span
+                            id="total-parts-count">0 Parts</span></span>
+                    <div class="lang-toggle"
+                        style="display: flex; gap: 4px; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 4px;">
+                        <button id="btn-lang-en" class="btn"
+                            style="padding: 2px 6px; font-size: 10px; border: none; background: white; color: var(--accent-red); box-shadow: var(--card-shadow);">EN</button>
+                        <button id="btn-lang-fr" class="btn"
+                            style="padding: 2px 6px; font-size: 10px; border: none; background: transparent; color: var(--text-muted);">FR</button>
+                    </div>
+                </div>
+
+                <!-- Navigation Menu -->
+                <div
+                    style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <p class="nav-subtitle">3. MODEL BUILDER</p>
+                        <button id="btn-global-help" class="btn btn-outline"
+                            style="padding: 4px 8px; font-size: 16px; border:none; border-radius:50%; margin-bottom: 8px; margin-right: -8px;"
+                            title="Help & Overview"><i class="ph ph-question"></i></button>
+                    </div>
+
+                    <a href="/template/" class="btn btn-menu">
+                        <i class="ph ph-tree-structure"></i> Master Attributes
+                    </a>
+
+                    <a href="/library/" class="btn btn-menu">
+                        <i class="ph ph-books"></i> Parts Library Editor
+                    </a>
+
+                    <a href="/" class="btn btn-menu active">
+                        <i class="ph ph-magic-wand"></i> Model Builder
+                    </a>
+                    <!-- Sub-menu Action under Model Builder -->
+                    <button class="btn btn-sub-menu" id="btn-start-wizard">
+                        <i class="ph ph-rocket"></i> Build Wizard
+                    </button>
+                </div>
+            </div>
+            <nav class="sidebar-nav" id="category-nav">
+                <!-- Categories will be injected here by JS -->
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="topbar">
+                <h1 class="page-title" id="current-category-title" data-i18n="textLoading">Loading Components...</h1>
+                <div class="search-bar" title="Search across tags, component names, or PIDs">
+                    <i class="ph ph-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Search across component tags or names...">
+                </div>
+            </header>
+
+            <!-- Filter & Sort Toolbar -->
+            <div class="filter-toolbar hidden" id="filter-toolbar">
+                <div class="filter-toolbar-controls">
+                    <div class="filter-group">
+                        <label class="filter-label">Sort by</label>
+                        <select class="filter-select" id="sort-select">
+                            <option value="default">Default</option>
+                            <option value="name-asc">Name A→Z</option>
+                            <option value="name-desc">Name Z→A</option>
+                            <option value="weight-asc">Weight ↑</option>
+                            <option value="weight-desc">Weight ↓</option>
+                            <option value="price-asc">Price ↑</option>
+                            <option value="price-desc">Price ↓</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Manufacturer</label>
+                        <select class="filter-select" id="manufacturer-select">
+                            <option value="">All</option>
+                        </select>
+                    </div>
+                    <div class="filter-group filter-group--weight hidden" id="weight-filter-group">
+                        <label class="filter-label">Weight (g)</label>
+                        <div class="range-inputs">
+                            <input type="number" class="filter-input" id="weight-min" placeholder="Min" min="0">
+                            <span class="range-sep">–</span>
+                            <input type="number" class="filter-input" id="weight-max" placeholder="Max" min="0">
+                        </div>
+                    </div>
+                    <button class="filter-clear-btn hidden" id="filter-clear-btn">
+                        <i class="ph ph-x-circle"></i> Clear filters
+                    </button>
+
+                    <!-- View Toggle -->
+                    <div class="view-toggle" id="view-toggle">
+                        <button class="view-toggle-btn active" id="btn-view-grid" title="Grid view">
+                            <i class="ph ph-squares-four"></i>
+                        </button>
+                        <button class="view-toggle-btn" id="btn-view-list" title="List view">
+                            <i class="ph ph-list-bullets"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="filter-chips" id="filter-chips"></div>
+            </div>
+
+            <div class="content-body">
+                <div class="loader-container" id="loader">
+                    <div class="spinner"></div>
+                    <p>Fetching schema...</p>
+                </div>
+
+                <div class="error-container hidden" id="error-screen">
+                    <i class="ph ph-warning-circle error-icon"></i>
+                    <h2 data-i18n="errLoadTitle">Failed to load components</h2>
+                    <p id="error-message">Could not fetch 'drone_parts_schema_v2.json'.</p>
+                    <p class="help-text" data-i18n="errLoadDesc">Please make sure the file is in the same directory, or
+                        use the 'Upload Custom
+                        JSON' button to load it manually.</p>
+                </div>
+
+                <div class="components-grid hidden" id="components-grid">
+                    <!-- Component cards will be injected here by JS -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Component Detail Modal -->
+    <div class="modal-overlay hidden" id="detail-modal">
+        <div class="modal-content glass-panel" id="modal-body">
+            <button class="modal-close" id="modal-close-btn"><i class="ph ph-x"></i></button>
+            <div class="modal-header">
+                <div class="modal-image-placeholder" id="modal-image-container">
+                    <i class="ph ph-image"></i>
+                </div>
+                <div class="modal-title-area">
+                    <h2 id="modal-title">Component Name</h2>
+                    <p class="modal-manufacturer" id="modal-manufacturer">Manufacturer</p>
+                    <span class="modal-pid" id="modal-pid">PID-0000</span>
+                    <p class="modal-desc" id="modal-description">Description goes here.</p>
+                    <div class="modal-tags" id="modal-tags">
+                        <!-- Tags injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-body-scroll">
+                <h3>Technical Specifications</h3>
+                <div class="specs-grid" id="modal-specs">
+                    <!-- Specs injected by JS -->
+                </div>
+
+                <div class="compatibility-section hidden" id="modal-compat-section">
+                    <h3>Compatibility Constraints</h3>
+                    <div class="compat-grid" id="modal-compat">
+                        <!-- Compatibility rules injected by JS -->
+                    </div>
+                </div>
+
+                <div class="notes-section hidden" id="modal-notes-section">
+                    <h3>Schema Notes</h3>
+                    <div class="notes-list" id="modal-notes">
+                        <!-- Notes injected by JS -->
+                    </div>
+                </div>
+
+                <div class="similar-options-section hidden" id="modal-similar-section">
+                    <h3><i class="ph ph-magic-wand"></i> Similar Alternatives</h3>
+                    <div class="similar-grid" id="modal-similar-grid">
+                        <!-- Similar items injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" id="modal-footer-actions">
+                <button class="btn btn-primary" id="modal-add-btn">
+                    <i class="ph ph-plus-circle"></i>
+                    <span data-i18n="btnAddBuild">Add to Build</span>
+                </button>
+                <a href="#" class="btn btn-outline" id="modal-edit-btn"
+                    style="border-color: var(--accent-blue); color: var(--accent-blue);">
+                    <i class="ph ph-pencil-simple"></i>
+                    <span data-i18n="btnEditPart">Edit Component</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    <a href="#" class="btn btn-outline" id="modal-link" target="_blank">
+        <span>View Product</span>
+        <i class="ph ph-arrow-up-right"></i>
+    </a>
+    </div>
+    </div>
+    </div>
+
+    <!-- Floating Action Button for Build -->
+    <button class="build-fab" id="build-fab">
+        <i class="ph-fill ph-wrench"></i>
+        <span>Current Build</span>
+        <div class="build-badge" id="build-badge">0</div>
+    </button>
+
+    <!-- Build Drawer -->
+    <div class="build-drawer-overlay hidden" id="build-overlay"></div>
+    <div class="build-drawer" id="build-drawer">
+        <div class="drawer-header">
+            <h2>Your Drone Build</h2>
+            <button class="drawer-close" id="drawer-close-btn"><i class="ph ph-x"></i></button>
+        </div>
+
+        <!-- Wizard Header injected here -->
+        <div class="wizard-header hidden" id="wizard-header"
+            style="padding: 15px 20px; background: rgba(6, 182, 212, 0.1); border-bottom: 1px solid rgba(6, 182, 212, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="color: var(--accent-cyan); margin: 0; font-size: 14px;">Build Wizard</h3>
+                <span id="wizard-step-counter" style="color: var(--text-muted); font-size: 12px;">Step 1 of 8</span>
+            </div>
+            <p id="wizard-prompt" style="font-size: 13px; margin: 0; color: var(--text-main);">Select a Frame...</p>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-outline" id="wizard-skip-btn" style="flex: 1; padding: 6px;">Skip Step</button>
+                <button class="btn btn-primary" id="wizard-next-btn" style="flex: 1; padding: 6px;">Next:
+                    Motors</button>
+            </div>
+            <button class="btn btn-outline" id="wizard-exit-btn"
+                style="width: 100%; margin-top: 10px; padding: 6px; border-color: var(--negative-red); color: var(--negative-red);">Exit
+                Wizard</button>
+        </div>
+
+        <div class="drawer-body" id="build-slots">
+            <!-- Slots will be injected here by JS -->
+        </div>
+
+        <div id="build-warnings-container" class="build-warnings-container">
+            <!-- Warnings injected here by JS -->
+        </div>
+
+        <div class="drawer-footer">
+            <div class="build-totals">
+                <div class="total-row">
+                    <span>Estimated Weight:</span>
+                    <span id="build-total-weight" class="total-value">0g</span>
+                </div>
+                <div class="total-row highlight">
+                    <span>Estimated Cost:</span>
+                    <span id="build-total-cost" class="total-value">$0.00</span>
+                </div>
+            </div>
+            <div class="build-action-buttons">
+                <button class="btn btn-primary" id="save-build-btn" style="flex:1;">
+                    <i class="ph ph-floppy-disk"></i> Save Build
+                </button>
+                <button class="btn btn-outline" id="load-build-btn" style="flex:1;">
+                    <i class="ph ph-folder-open"></i> Load Build
+                </button>
+            </div>
+            <button class="btn btn-outline" id="clear-build-btn"
+                style="width: 100%; margin-top: 8px; border-color: rgba(239, 68, 68, 0.3); color: #ef4444;">
+                <i class="ph ph-trash"></i> Clear Build
+            </button>
+        </div>
+    </div>
+
+    <!-- Save Build Modal -->
+    <div class="modal-overlay hidden" id="save-build-modal">
+        <div class="modal-content glass-panel" style="max-width: 480px;">
+            <button class="modal-close" id="save-build-close-btn"><i class="ph ph-x"></i></button>
+            <div class="save-modal-header">
+                <div class="save-modal-icon"><i class="ph-fill ph-floppy-disk"></i></div>
+                <div>
+                    <h2>Save Build</h2>
+                    <p>Give this configuration a name to save it.</p>
+                </div>
+            </div>
+            <div class="save-modal-body">
+                <label class="filter-label" for="build-name-input">Build Name</label>
+                <input type="text" id="build-name-input" class="build-name-input" placeholder="e.g. 5" Racing Freestyle Build" maxlength="80">
+                <label class="filter-label" style="margin-top:12px;" for="build-desc-input">Description <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+                <input type="text" id="build-desc-input" class="build-name-input" placeholder="Notes about this build..." maxlength="200">
+                <div id="save-build-summary" class="save-build-summary"></div>
+            </div>
+            <div class="save-modal-footer">
+                <button class="btn btn-outline" id="save-build-cancel-btn">Cancel</button>
+                <button class="btn btn-primary" id="save-build-confirm-btn">
+                    <i class="ph ph-floppy-disk"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Build Modal -->
+    <div class="modal-overlay hidden" id="load-build-modal">
+        <div class="modal-content glass-panel" style="max-width: 560px;">
+            <button class="modal-close" id="load-build-close-btn"><i class="ph ph-x"></i></button>
+            <div class="save-modal-header">
+                <div class="save-modal-icon" style="background: var(--accent-blue);"><i class="ph-fill ph-folder-open"></i></div>
+                <div>
+                    <h2>Saved Builds</h2>
+                    <p>Load a previously saved configuration.</p>
+                </div>
+            </div>
+            <div id="saved-builds-list" class="saved-builds-list">
+                <div class="saved-builds-empty"><i class="ph ph-archive"></i><p>No saved builds yet.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Help Modal -->
+    <div class="modal-overlay hidden" id="help-modal">
+        <div class="modal-content glass-panel" style="max-width: 600px;">
+            <button class="modal-close" id="help-close-btn" style="top: 20px; right: 20px;"><i
+                    class="ph ph-x"></i></button>
+            <div class="modal-header"
+                style="background: linear-gradient(to right, rgba(218, 41, 28, 0.05), transparent); padding: 24px; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div
+                        style="width: 48px; height: 48px; border-radius: 50%; background: var(--accent-red); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: var(--card-shadow);">
+                        <i class="ph-fill ph-question"></i>
+                    </div>
+                    <div>
+                        <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 4px; color: var(--text-main);">How
+                            DroneCLEAR Works</h2>
+                        <p style="color: var(--text-muted); font-size: 13px;">A brief overview of the application
+                            architecture.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body-scroll"
+                style="padding: 24px; font-size: 14px; line-height: 1.6; color: var(--text-muted);">
+                <p style="margin-bottom: 20px;">This application is divided into <b>three main pillars</b>, accessible
+                    from the sidebar. Changes cascade from the top down.</p>
+
+                <div
+                    style="display: flex; gap: 16px; margin-bottom: 24px; background: var(--bg-dark); padding: 16px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-red); box-shadow: var(--inset-shadow);">
+                    <i class="ph ph-tree-structure" style="font-size: 24px; color: var(--accent-red);"></i>
+                    <div>
+                        <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">1. Master
+                            Attributes</strong>
+                        The absolute source of truth. This JSON schema dictates exactly what fields every single drone
+                        component is allowed to have. Edit this template to change the structure of the database
+                        globally.
+                    </div>
+                </div>
+
+                <div
+                    style="display: flex; gap: 16px; margin-bottom: 24px; background: var(--bg-dark); padding: 16px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-blue); box-shadow: var(--inset-shadow);">
+                    <i class="ph ph-books" style="font-size: 24px; color: var(--accent-blue);"></i>
+                    <div>
+                        <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">2. Parts Library
+                            Editor</strong>
+                        A tool to input new, physical parts into the database. The forms on this page are dynamically
+                        built directly from the Master Attributes template.
+                    </div>
+                </div>
+
+                <div
+                    style="display: flex; gap: 16px; margin-bottom: 24px; background: var(--bg-dark); padding: 16px; border-radius: var(--radius-sm); border-left: 3px solid #10b981; box-shadow: var(--inset-shadow);">
+                    <i class="ph ph-magic-wand" style="font-size: 24px; color: #10b981;"></i>
+                    <div>
+                        <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">3. Drone Models
+                            Builder (Visualizer)</strong>
+                        The frontend store. Users can browse the library of parts and piece together drone models using
+                        the Build Wizard. The wizard checks compatibility across components.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="{% static 'state.js' %}?v=1"></script>
+    <script src="{% static 'utils.js' %}?v=1"></script>
+    <script src="{% static 'filters.js' %}?v=1"></script>
+    <script src="{% static 'components.js' %}?v=1"></script>
+    <script src="{% static 'modal.js' %}?v=1"></script>
+    <script src="{% static 'build.js' %}?v=1"></script>
+    <script src="{% static 'wizard.js' %}?v=1"></script>
+    <script src="{% static 'persist.js' %}?v=1"></script>
+    <script src="{% static 'app.js' %}?v=1"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggle = document.getElementById('mobile-nav-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (toggle && sidebar) {
+                toggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('open');
+                });
+                // Close sidebar if clicking outside on mobile
+                document.addEventListener('click', (e) => {
+                    if (window.innerWidth <= 768) {
+                        if (!sidebar.contains(e.target) && !toggle.contains(e.target) && sidebar.classList.contains('open')) {
+                            sidebar.classList.remove('open');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

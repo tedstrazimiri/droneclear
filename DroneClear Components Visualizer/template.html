@@ -1,0 +1,170 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Attribute Template</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'style.css' %}?v=3">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Mobile Nav Toggle -->
+        <button class="mobile-nav-toggle" id="mobile-nav-toggle" style="display: none;">
+            <i class="ph ph-list" style="font-size: 24px;"></i>
+        </button>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div class="sidebar-header" style="position: relative;">
+                    <div class="logo">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/c/cf/Flag_of_Canada.svg"
+                            alt="Canadian Flag"
+                            style="width: 28px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <span data-i18n="appTitle">DroneClear Configurator</span>
+                    </div>
+
+                    <!-- Version & Settings -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 8px 12px; background: var(--bg-dark); border-radius: var(--radius-sm); border: 1px solid var(--border-color); box-shadow: var(--inset-shadow);">
+                        <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">v1.0.0 | Build 26 |
+                            <span id="total-parts-count">0 Parts</span></span>
+                        <div class="lang-toggle"
+                            style="display: flex; gap: 4px; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 4px;">
+                            <button id="btn-lang-en" class="btn"
+                                style="padding: 2px 6px; font-size: 10px; border: none; background: white; color: var(--accent-red); box-shadow: var(--card-shadow);">EN</button>
+                            <button id="btn-lang-fr" class="btn"
+                                style="padding: 2px 6px; font-size: 10px; border: none; background: transparent; color: var(--text-muted);">FR</button>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Menu -->
+                    <div
+                        style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                            <p class="nav-subtitle">1. MASTER ATTRIBUTES</p>
+                        </div>
+
+                        <a href="/template/" class="btn btn-menu active">
+                            <i class="ph ph-tree-structure"></i> Master Attributes
+                        </a>
+                        <!-- Sub-menu Action under Master Attributes -->
+                        <div class="file-upload-wrapper">
+                            <label for="schema-upload" class="btn btn-sub-menu" id="upload-label"
+                                style="display: flex; margin-bottom: 0;">
+                                <i class="ph ph-upload-simple"></i>
+                                <span>Import JSON</span>
+                            </label>
+                            <input type="file" id="schema-upload" accept=".json" style="display:none;">
+                        </div>
+
+                        <a href="/library/" class="btn btn-menu">
+                            <i class="ph ph-books"></i> Parts Library Editor
+                        </a>
+
+                        <a href="/" class="btn btn-menu">
+                            <i class="ph ph-magic-wand"></i> Model Builder
+                        </a>
+                    </div>
+                </div>
+                <div style="padding: 24px;">
+                    <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">
+                        This template is the blueprint for your drone catalog. Every category, attribute, and
+                        compatibility rule is defined here.
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content" style="padding: 40px; display: flex; flex-direction: column;">
+            <header class="topbar"
+                style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="page-title">Master Attribute Template</h1>
+                    <p style="color: var(--text-muted); margin-top: 8px;">The source of truth for all components and
+                        DroneClear compatibility logic.</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <!-- Search Bar -->
+                    <div class="search-bar" title="Search across Master Attributes">
+                        <i class="ph ph-magnifying-glass search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Search Master Schema...">
+                    </div>
+                    <!-- View Toggle Buttons -->
+                    <div class="view-toggles"
+                        style="display: flex; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 4px; border: 1px solid rgba(255,255,255,0.05);">
+                        <button class="btn btn-outline active-toggle" id="btn-view-visual"
+                            style="border: none; padding: 8px 16px;">
+                            <i class="ph ph-squares-four"></i> Visual Editor
+                        </button>
+                        <button class="btn btn-outline" id="btn-view-json" style="border: none; padding: 8px 16px;">
+                            <i class="ph ph-code"></i> Raw JSON
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="loader-container" id="template-loader">
+                <div class="spinner"></div>
+                <p>Fetching Master Schema from API...</p>
+            </div>
+
+            <div id="template-workspace" class="hidden"
+                style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                <!-- Raw JSON View -->
+                <textarea id="schema-editor" spellcheck="false" class="hidden"
+                    style="flex: 1; width: 100%; background: #0a0a0b; color: #a5b4fc; font-family: 'Consolas', monospace; font-size: 14px; line-height: 1.5; padding: 24px; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); outline: none; resize: none;"></textarea>
+
+                <!-- Visual Editor View -->
+                <div id="visual-editor-container"
+                    style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 12px;">
+                    <!-- Categories will be injected here by JS -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Dev Utilities & Config (Fixed to Bottom Left) -->
+    <div
+        style="position: fixed; bottom: 24px; left: 24px; z-index: 100; width: 232px; background: var(--bg-dark); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); box-shadow: var(--inset-shadow);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">v1.0.0 | Build 26 | <span
+                    id="total-parts-count">0 Parts</span></span>
+            <span style="font-size: 10px; color: var(--text-muted);">Master Mode</span>
+        </div>
+    </div>
+
+    <button class="fab-bottom-right" id="btn-save-schema">
+        <i class="ph ph-floppy-disk"></i>
+        <span>Save Master Template</span>
+    </button>
+    <script src="{% static 'template.js' %}?v=3"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggle = document.getElementById('mobile-nav-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (toggle && sidebar) {
+                toggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('open');
+                });
+                // Close sidebar if clicking outside on mobile
+                document.addEventListener('click', (e) => {
+                    if (window.innerWidth <= 768) {
+                        if (!sidebar.contains(e.target) && !toggle.contains(e.target) && sidebar.classList.contains('open')) {
+                            sidebar.classList.remove('open');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

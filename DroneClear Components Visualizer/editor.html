@@ -1,0 +1,338 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parts Library Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'style.css' %}?v=3">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        .editor-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            outline: none;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .form-actions {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .schema-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            grid-column: 1 / -1;
+        }
+
+        .schema-section h3 {
+            margin-bottom: 16px;
+            font-size: 18px;
+            color: var(--accent-cyan);
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .item-row:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Mobile Nav Toggle -->
+        <button class="mobile-nav-toggle" id="mobile-nav-toggle" style="display: none;">
+            <i class="ph ph-list" style="font-size: 24px;"></i>
+        </button>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header" style="position: relative;">
+                <div class="logo">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/cf/Flag_of_Canada.svg"
+                        alt="Canadian Flag"
+                        style="width: 28px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <span data-i18n="appTitle">DroneClear Configurator</span>
+                </div>
+
+                <!-- Version & Settings -->
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 8px 12px; background: var(--bg-dark); border-radius: var(--radius-sm); border: 1px solid var(--border-color); box-shadow: var(--inset-shadow);">
+                    <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">v1.0.0 | Build 26 | <span
+                            id="total-parts-count">0 Parts</span></span>
+                    <div class="lang-toggle"
+                        style="display: flex; gap: 4px; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 4px;">
+                        <button id="btn-lang-en" class="btn"
+                            style="padding: 2px 6px; font-size: 10px; border: none; background: white; color: var(--accent-red); box-shadow: var(--card-shadow);">EN</button>
+                        <button id="btn-lang-fr" class="btn"
+                            style="padding: 2px 6px; font-size: 10px; border: none; background: transparent; color: var(--text-muted);">FR</button>
+                    </div>
+                </div>
+
+                <!-- Navigation Menu -->
+                <div
+                    style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <p class="nav-subtitle">2. PARTS LIBRARY EDITOR</p>
+                    </div>
+
+                    <a href="/template/" class="btn btn-menu">
+                        <i class="ph ph-tree-structure"></i> Master Attributes
+                    </a>
+
+                    <a href="/library/" class="btn btn-menu active">
+                        <i class="ph ph-books"></i> Parts Library Editor
+                    </a>
+
+                    <a href="/" class="btn btn-menu">
+                        <i class="ph ph-magic-wand"></i> Model Builder
+                    </a>
+                </div>
+            </div>
+            <nav class="sidebar-nav" id="editor-nav">
+                <!-- Categories injected here -->
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content" style="padding: 40px; overflow-y: auto;">
+            <header class="topbar"
+                style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                <h1 class="page-title" id="editor-title">Select a Category to Edit</h1>
+                <div class="search-bar" title="Search across tags, component names, or PIDs">
+                    <i class="ph ph-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Search across component tags or names...">
+                </div>
+            </header>
+
+            <div class="loader-container" id="editor-loader">
+                <div class="spinner"></div>
+                <p>Loading API Data...</p>
+            </div>
+
+            <div id="editor-workspace" class="hidden" style="max-width: 900px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 id="workspace-subtitle" style="font-size: 20px; color: var(--text-main);">Components</h2>
+                    <!-- Create New moved to FAB -->
+                </div>
+
+                <div id="editor-items-list"
+                    style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 40px;">
+                    <!-- Items listed here -->
+                </div>
+
+                <div class="glass-panel hidden" id="item-form-container" style="padding: 32px;">
+                    <h2 id="form-title" style="margin-bottom: 8px; color: var(--text-main);">Create New Part</h2>
+                    <form id="component-form" class="editor-form">
+                        <!-- Standard Fields -->
+                        <div class="form-group">
+                            <label>PID</label>
+                            <input type="text" id="field-pid" required placeholder="e.g. MTR-0002">
+                        </div>
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" id="field-name" required>
+                        </div>
+                        <div class="form-group half-width">
+                            <label>Manufacturer</label>
+                            <input type="text" id="field-mfg" placeholder="e.g. iFlight">
+                        </div>
+                        <div class="form-group half-width">
+                            <label>Approx Price</label>
+                            <input type="text" id="field-price" placeholder="$0.00">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Description</label>
+                            <textarea id="field-desc" rows="3"></textarea>
+                        </div>
+                        <div class="form-group half-width">
+                            <label>Thumbnail Image URL / Path</label>
+                            <input type="text" id="field-image" placeholder="https://example.com/image.jpg">
+                        </div>
+                        <div class="form-group half-width">
+                            <label>Manual / PDF Link</label>
+                            <input type="text" id="field-manual" placeholder="https://example.com/manual.pdf">
+                        </div>
+
+                        <!-- Dynamic Fields injected here -->
+                        <div class="schema-section" id="dynamic-fields-container">
+                            <h3>Dynamic Schema Attributes</h3>
+                            <div class="editor-form" id="dynamic-fields-grid" style="margin-top:0;">
+                                <!-- Fields generated by JS from v2 schema -->
+                            </div>
+                        </div>
+
+                        <!-- NEW: Dedicated Compatibility Section -->
+                        <div class="schema-section" id="compatibility-section" style="display: none;">
+                            <h3>Compatibility Rules</h3>
+                            <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">Define strict
+                                physical constraints for the Build Engine.</p>
+                            <div class="editor-form" id="compatibility-fields-grid"
+                                style="margin-top:0; border: 1px dashed rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                                <!-- Fields generated by JS -->
+                            </div>
+                        </div>
+
+                        <div class="form-actions" style="justify-content: space-between;">
+                            <div>
+                                <button type="button" class="btn btn-outline" id="btn-delete"
+                                    style="color: var(--negative-red); border-color: rgba(239, 68, 68, 0.3); display: none;">Delete</button>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-outline" id="btn-cancel">Cancel</button>
+                                <button type="submit" class="btn btn-primary" id="btn-save">Save to Database</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="glass-panel hidden" id="drone-form-container" style="padding: 32px;">
+                    <h2 id="drone-form-title" style="margin-bottom: 8px; color: var(--text-main);">Create New Drone
+                        Model</h2>
+                    <form id="drone-form" class="editor-form">
+                        <div class="form-group">
+                            <label>Model PID</label>
+                            <input type="text" id="df-pid" required placeholder="e.g. MDL-0001">
+                        </div>
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" id="df-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Vehicle Type</label>
+                            <input type="text" id="df-type" placeholder="e.g. quad">
+                        </div>
+                        <div class="form-group">
+                            <label>Build Class</label>
+                            <input type="text" id="df-class" placeholder="e.g. 5inch_freestyle">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Description</label>
+                            <textarea id="df-desc" rows="3"></textarea>
+                        </div>
+                        <div class="form-group half-width">
+                            <label>Thumbnail Image URL / Path</label>
+                            <input type="text" id="df-image" placeholder="https://example.com/image.jpg">
+                        </div>
+                        <div class="form-group half-width">
+                            <label>Manual / PDF Link</label>
+                            <input type="text" id="df-manual" placeholder="https://example.com/manual.pdf">
+                        </div>
+
+                        <div class="schema-section full-width">
+                            <h3>Component Relations</h3>
+                            <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">Map the parts used
+                                in this build by specifying their JSON lists, e.g.
+                                <code>{"frames": [{"pid": "FRM-0001"}], "motors": [{"pid": "MTR-0001", "quantity": 4}]}</code>.
+                            </p>
+                            <textarea id="df-relations" rows="10"
+                                style="width:100%; font-family:monospace; background: rgba(0,0,0,0.2);"></textarea>
+                        </div>
+
+                        <div class="form-actions" style="justify-content: space-between;">
+                            <div>
+                                <button type="button" class="btn btn-outline" id="btn-drone-delete"
+                                    style="color: var(--negative-red); border-color: rgba(239, 68, 68, 0.3); display: none;">Delete</button>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-outline" id="btn-drone-cancel">Cancel</button>
+                                <button type="submit" class="btn btn-primary" id="btn-drone-save">Save Drone
+                                    Model</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Dev Utilities & Config (Fixed to Bottom Left) -->
+    <div
+        style="position: fixed; bottom: 24px; left: 24px; z-index: 100; width: 232px; background: var(--bg-dark); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); box-shadow: var(--inset-shadow);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">v1.0.0 | Build 26 | <span
+                    id="total-parts-count">0 Parts</span></span>
+            <span style="font-size: 10px; color: var(--text-muted);">Editor Mode</span>
+        </div>
+    </div>
+
+    <button class="fab-bottom-right hidden" id="btn-create-new">
+        <i class="ph ph-plus"></i> Create New
+    </button>
+    </div>
+    <script src="{% static 'editor.js' %}?v=3"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggle = document.getElementById('mobile-nav-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (toggle && sidebar) {
+                toggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('open');
+                });
+                // Close sidebar if clicking outside on mobile
+                document.addEventListener('click', (e) => {
+                    if (window.innerWidth <= 768) {
+                        if (!sidebar.contains(e.target) && !toggle.contains(e.target) && sidebar.classList.contains('open')) {
+                            sidebar.classList.remove('open');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
