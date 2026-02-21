@@ -2015,3 +2015,139 @@ input[type="file"] {
     font-size: 18px;
     pointer-events: none;
 }
+
+/* ============================================================
+   KEYBOARD SHORTCUTS OVERLAY
+   ============================================================ */
+
+.shortcuts-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+}
+
+.shortcuts-overlay.hidden {
+    display: none;
+}
+
+.shortcuts-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow-hover);
+    width: 420px;
+    max-width: 94vw;
+    overflow: hidden;
+}
+
+.shortcuts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.shortcuts-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.shortcuts-title i {
+    font-size: 18px;
+    color: var(--accent-red);
+}
+
+.shortcuts-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    transition: color 0.15s, background 0.15s;
+}
+
+.shortcuts-close-btn:hover {
+    color: var(--text-main);
+    background: var(--bg-panel-hover);
+}
+
+.shortcuts-close-btn i {
+    font-size: 18px;
+}
+
+.shortcuts-body {
+    padding: 10px 22px;
+}
+
+.shortcut-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-color);
+    gap: 12px;
+}
+
+.shortcut-row:last-child {
+    border-bottom: none;
+}
+
+.shortcut-keys {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.kbd-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-panel-hover);
+    border: 1px solid var(--border-hover);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-family: 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
+    font-weight: 600;
+    color: var(--text-main);
+    min-width: 28px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.kbd-or {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-style: italic;
+}
+
+.shortcut-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+.shortcuts-footer {
+    padding: 12px 22px;
+    border-top: 1px solid var(--border-color);
+    font-size: 12px;
+    color: var(--text-faint);
+    text-align: center;
+    background: var(--bg-panel-hover);
+}

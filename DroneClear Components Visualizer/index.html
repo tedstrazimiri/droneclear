@@ -91,6 +91,9 @@
                 <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
                     <i class="ph ph-moon" id="dark-mode-icon"></i>
                 </button>
+                <button class="dark-mode-toggle" id="shortcuts-help-btn" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
+                    <i class="ph ph-keyboard"></i>
+                </button>
             </header>
 
             <!-- Filter & Sort Toolbar -->
@@ -413,6 +416,7 @@
     <script src="{% static 'wizard.js' %}?v=1"></script>
     <script src="{% static 'persist.js' %}?v=1"></script>
     <script src="{% static 'app.js' %}?v=1"></script>
+    <script src="{% static 'shortcuts.js' %}?v=1"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const toggle = document.getElementById('mobile-nav-toggle');

@@ -10,6 +10,8 @@ async function initApp() {
     initDarkMode();
     setupEventListeners();
     initBuildDrawer();
+    injectShortcutsOverlay();
+    initShortcuts();
     await fetchAllCategories();
 }
 
@@ -20,9 +22,6 @@ function setupEventListeners() {
     // Component modal
     elements.modalCloseBtn.addEventListener('click', closeModal);
     elements.modal.addEventListener('click', (e) => { if (e.target === elements.modal) closeModal(); });
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !elements.modal.classList.contains('hidden')) closeModal();
-    });
 
     // Add to build from modal
     elements.modalAddBtn.addEventListener('click', () => {
@@ -60,6 +59,9 @@ function setupEventListeners() {
 
     // Dark mode toggle
     elements.darkModeToggle?.addEventListener('click', toggleDarkMode);
+
+    // Keyboard shortcuts help button
+    document.getElementById('shortcuts-help-btn')?.addEventListener('click', toggleShortcutsOverlay);
 }
 
 // =============================================================
