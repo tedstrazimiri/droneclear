@@ -45,6 +45,36 @@
 
     /* Typography */
     --font-family: 'Inter', sans-serif;
+
+    /* Dark mode transition speed */
+    --theme-transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ---------------------------------------------------------------
+   Dark Mode — applied by adding [data-theme="dark"] to <html>
+--------------------------------------------------------------- */
+[data-theme="dark"] {
+    --bg-dark: #0f1117;
+    --bg-panel: #1a1d27;
+    --bg-panel-hover: #222533;
+    --glass-bg: rgba(26, 29, 39, 0.92);
+
+    --text-main: #e8eaf0;
+    --text-muted: #94a3b8;
+    --text-faint: #475569;
+
+    /* Keep brand red, slightly brighter for dark background */
+    --accent-red: #e63329;
+    --accent-darkred: #da291c;
+    --accent-blue: #38bdf8;
+
+    --border-color: rgba(255, 255, 255, 0.07);
+    --border-hover: rgba(255, 255, 255, 0.14);
+
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+    --card-shadow-hover: 0 10px 20px -3px rgba(0, 0, 0, 0.5), 0 4px 8px -4px rgba(0, 0, 0, 0.4);
+    --inset-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+    --glow-shadow: 0 0 20px rgba(230, 51, 41, 0.25);
 }
 
 * {
@@ -60,6 +90,12 @@ body {
     line-height: 1.5;
     overflow: hidden;
     /* App container handles scroll */
+    transition: var(--theme-transition);
+}
+
+/* Smooth colour transitions on all child elements during theme switch */
+body * {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 /* Utilities */
@@ -315,16 +351,15 @@ input[type="file"] {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     border-bottom: 1px solid var(--border-color);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    background-color: rgba(255, 255, 255, 0.85);
-    /* Frosty light topbar */
+    background-color: var(--glass-bg);
     position: sticky;
     top: 0;
     z-index: 5;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-    /* Slight elevation */
 }
 
 .page-title {
@@ -1924,4 +1959,59 @@ input[type="file"] {
 #app-toast i {
     font-size: 18px;
     flex-shrink: 0;
+}
+
+/* Dark mode toast variants — darker palette */
+[data-theme="dark"] #app-toast.app-toast--success {
+    background: #14532d;
+    color: #86efac;
+    border-color: #166534;
+}
+
+[data-theme="dark"] #app-toast.app-toast--error {
+    background: #450a0a;
+    color: #fca5a5;
+    border-color: #7f1d1d;
+}
+
+[data-theme="dark"] #app-toast.app-toast--warning {
+    background: #422006;
+    color: #fcd34d;
+    border-color: #78350f;
+}
+
+[data-theme="dark"] #app-toast.app-toast--info {
+    background: #0c2344;
+    color: #7dd3fc;
+    border-color: #1e3a5f;
+}
+
+/* ============================================================
+   DARK MODE TOGGLE BUTTON
+   ============================================================ */
+
+.dark-mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-panel);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+}
+
+.dark-mode-toggle:hover {
+    background: var(--bg-panel-hover);
+    color: var(--text-main);
+    border-color: var(--border-hover);
+}
+
+.dark-mode-toggle i {
+    font-size: 18px;
+    pointer-events: none;
 }

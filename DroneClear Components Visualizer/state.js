@@ -80,7 +80,11 @@ const elements = {
     wizardPrompt: document.getElementById('wizard-prompt'),
     wizardSkipBtn: document.getElementById('wizard-skip-btn'),
     wizardNextBtn: document.getElementById('wizard-next-btn'),
-    wizardExitBtn: document.getElementById('wizard-exit-btn')
+    wizardExitBtn: document.getElementById('wizard-exit-btn'),
+
+    // Dark Mode
+    darkModeToggle: document.getElementById('dark-mode-toggle'),
+    darkModeIcon: document.getElementById('dark-mode-icon')
 };
 
 // --- Component Cache & Navigation State ---

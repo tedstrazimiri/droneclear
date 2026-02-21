@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
+    initDarkMode();
     setupEventListeners();
     initBuildDrawer();
     await fetchAllCategories();
@@ -56,4 +57,36 @@ function setupEventListeners() {
 
     // Filter, sort & view toggle
     setupFilterListeners();
+
+    // Dark mode toggle
+    elements.darkModeToggle?.addEventListener('click', toggleDarkMode);
+}
+
+// =============================================================
+// Dark Mode
+// =============================================================
+
+function initDarkMode() {
+    // Respect saved preference, then OS preference
+    const saved = localStorage.getItem('dc-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = saved ? saved === 'dark' : prefersDark;
+    applyTheme(isDark);
+}
+
+function toggleDarkMode() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    applyTheme(!isDark);
+    localStorage.setItem('dc-theme', !isDark ? 'dark' : 'light');
+}
+
+function applyTheme(dark) {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    if (elements.darkModeIcon) {
+        elements.darkModeIcon.className = dark ? 'ph ph-sun' : 'ph ph-moon';
+    }
+    if (elements.darkModeToggle) {
+        elements.darkModeToggle.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+        elements.darkModeToggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    }
 }
