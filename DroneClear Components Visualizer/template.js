@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        btnSave.innerHTML = `<i class="ph ph-spinner ph-spin"></i><span>Saving...</span>`;
+        btnSave.innerHTML = `<i class="ph ph-spinner ph-spin"></i> Saving...`;
         btnSave.disabled = true;
 
         try {
@@ -106,18 +106,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Success flash via CSS animation class
             btnSave.classList.add('save-success-flash');
-            btnSave.innerHTML = `<i class="ph ph-check"></i><span>Saved!</span>`;
+            btnSave.innerHTML = `<i class="ph ph-check"></i> Saved!`;
             setTimeout(() => {
                 btnSave.classList.remove('save-success-flash');
-                const labelText = currentMode === 'json' ? "Save JSON" : "Save Master Template";
-                btnSave.innerHTML = `<i class="ph ph-floppy-disk"></i><span>${labelText}</span>`;
+                btnSave.innerHTML = `<i class="ph ph-floppy-disk"></i> Save`;
                 btnSave.disabled = false;
             }, 1500);
 
         } catch (error) {
             console.error(error);
             alert("An error occurred while saving the schema.");
-            btnSave.innerHTML = `<i class="ph ph-floppy-disk"></i><span>Save Master Template</span>`;
+            btnSave.innerHTML = `<i class="ph ph-floppy-disk"></i> Save`;
             btnSave.disabled = false;
         }
     }
@@ -196,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 visualContainer.classList.remove('hidden'); // Ensure it's never hidden anyway
                 renderVisualEditor(currentSchema);
 
-                btnSave.innerHTML = `<i class="ph ph-floppy-disk"></i><span>Save Master Template</span>`;
+                btnSave.innerHTML = `<i class="ph ph-floppy-disk"></i> Save`;
             } else {
                 // JSON Mode (checked)
                 currentMode = 'json';
@@ -211,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // CodeMirror needs a refresh when it becomes visible
                 codeMirrorEditor.refresh();
 
-                btnSave.innerHTML = `<i class="ph ph-floppy-disk"></i><span>Save JSON</span>`;
+                btnSave.innerHTML = `<i class="ph ph-floppy-disk"></i> Save`;
             }
         });
     }
