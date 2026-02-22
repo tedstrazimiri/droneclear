@@ -26,10 +26,14 @@ class DroneModelViewSet(viewsets.ModelViewSet):
 
 import os
 import json
+import threading
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
+# Basic lock to prevent concurrent read/writes to the singular json file
+schema_lock = threading.Lock()
 
 class SchemaView(APIView):
     """
@@ -43,20 +47,22 @@ class SchemaView(APIView):
         if not os.path.exists(schema_path):
             return Response({"error": "Schema file not found."}, status=status.HTTP_404_NOT_FOUND)
             
-        try:
-            with open(schema_path, 'r', encoding='utf-8') as f:
-                schema_data = json.load(f)
-            return Response(schema_data)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        with schema_lock:
+            try:
+                with open(schema_path, 'r', encoding='utf-8') as f:
+                    schema_data = json.load(f)
+                return Response(schema_data)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def post(self, request):
         schema_path = self.get_schema_path()
         new_schema = request.data
         
-        try:
-            with open(schema_path, 'w', encoding='utf-8') as f:
-                json.dump(new_schema, f, indent=4)
-            return Response({"message": "Schema updated successfully."})
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        with schema_lock:
+            try:
+                with open(schema_path, 'w', encoding='utf-8') as f:
+                    json.dump(new_schema, f, indent=4)
+                return Response({"message": "Schema updated successfully."})
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

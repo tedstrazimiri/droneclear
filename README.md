@@ -48,10 +48,10 @@ We have recently completed "Tier 1 + Tier 2" UI regressions and bug fixes. The a
 
 **Tier 3 Candidates (Upcoming Fixes/Features):**
 - ~~**Persistence Confirms**: The `persist.js` `deleteBuild()` logic still uses a blocking browser `confirm()` prompt and needs to be migrated to the new inline HTML confirmation bar (similar to the "Clear Build" button).~~
-- **Builder Skip Flow**: Introduce a card-level "Add to Build" button to let power users skip the detailed component modal during the wizard.
+- ~~**Builder Skip Flow**: Introduce a card-level "Add to Build" button to let power users skip the detailed component modal during the wizard.~~
 - ~~**Weight Filter Validation**: Ensure the inline weight filter inputs enforce minimum > maximum validation logic.~~
-- **Slot Replacement Confirm**: Add a "Replace?" overlay warning when a user attempts to add a component to a build slot that is already filled.
-- **Wizard Highlighting**: Wire up the existing visual component highlighting logic to match the current active step in the wizard.
+- ~~**Slot Replacement Confirm**: Add a "Replace?" overlay warning when a user attempts to add a component to a build slot that is already filled.~~
+- ~~**Wizard Highlighting**: Wire up the existing visual component highlighting logic to match the current active step in the wizard.~~
 
 ## 📦 Setup & Installation
 

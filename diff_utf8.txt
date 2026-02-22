@@ -1,0 +1,1107 @@
+﻿diff --git a/DroneClear Components Visualizer/editor.html b/DroneClear Components Visualizer/editor.html
+index e0a7a47..b0df6f7 100644
+--- a/DroneClear Components Visualizer/editor.html	
++++ b/DroneClear Components Visualizer/editor.html	
+@@ -1,338 +1,267 @@
+ {% load static %}
+ <!DOCTYPE html>
+-<html lang="en">
++<html lang="en" data-theme="light">
+ 
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Parts Library Editor</title>
+-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+-        rel="stylesheet">
+-    <link rel="stylesheet" href="{% static 'style.css' %}?v=3">
++    <title>Parts Library Editor ΓÇö DroneClear</title>
++    <link rel="preconnect" href="https://fonts.googleapis.com">
++    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
++    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
++    <link rel="stylesheet" href="{% static 'style.css' %}?v=4">
+     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+-    <style>
+-        .editor-form {
+-            display: grid;
+-            grid-template-columns: 1fr 1fr;
+-            gap: 16px;
+-            margin-top: 20px;
+-        }
+-
+-        .form-group {
+-            display: flex;
+-            flex-direction: column;
+-            gap: 8px;
+-        }
+-
+-        .form-group label {
+-            font-size: 13px;
+-            color: var(--text-muted);
+-            font-weight: 500;
+-        }
+-
+-        .form-group input,
+-        .form-group select,
+-        .form-group textarea {
+-            background: rgba(255, 255, 255, 0.05);
+-            border: 1px solid rgba(255, 255, 255, 0.1);
+-            color: var(--text-main);
+-            padding: 10px 12px;
+-            border-radius: var(--radius-sm);
+-            outline: none;
+-            font-family: inherit;
+-        }
+-
+-        .form-group input:focus,
+-        .form-group textarea:focus {
+-            border-color: var(--accent-blue);
+-        }
+-
+-        .form-actions {
+-            grid-column: 1 / -1;
+-            display: flex;
+-            justify-content: flex-end;
+-            gap: 12px;
+-            margin-top: 20px;
+-        }
+-
+-        .full-width {
+-            grid-column: 1 / -1;
+-        }
+-
+-        .schema-section {
+-            margin-top: 24px;
+-            padding-top: 24px;
+-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+-            grid-column: 1 / -1;
+-        }
+-
+-        .schema-section h3 {
+-            margin-bottom: 16px;
+-            font-size: 18px;
+-            color: var(--accent-cyan);
+-        }
+-
+-        .item-row {
+-            display: flex;
+-            justify-content: space-between;
+-            align-items: center;
+-            background: rgba(255, 255, 255, 0.02);
+-            padding: 12px 16px;
+-            border-radius: var(--radius-sm);
+-            border: 1px solid rgba(255, 255, 255, 0.05);
+-            cursor: pointer;
+-            transition: all 0.2s;
+-        }
+-
+-        .item-row:hover {
+-            background: rgba(59, 130, 246, 0.1);
+-            border-color: rgba(59, 130, 246, 0.3);
+-        }
+-    </style>
++    <script>
++        // Apply saved theme before paint to avoid flash
++        (function () {
++            const saved = localStorage.getItem('dc-theme');
++            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
++            document.documentElement.setAttribute('data-theme', saved ? saved : (prefersDark ? 'dark' : 'light'));
++        })();
++    </script>
+ </head>
+ 
+ <body>
+     <div class="app-container">
++
+         <!-- Mobile Nav Toggle -->
+-        <button class="mobile-nav-toggle" id="mobile-nav-toggle" style="display: none;">
+-            <i class="ph ph-list" style="font-size: 24px;"></i>
++        <button class="mobile-nav-toggle" id="mobile-nav-toggle" style="display:none;">
++            <i class="ph ph-list" style="font-size:24px;"></i>
+         </button>
+ 
+-        <!-- Sidebar Navigation -->
++        <!-- Sidebar -->
+         <aside class="sidebar">
+-            <div class="sidebar-header" style="position: relative;">
++            <div class="sidebar-header">
++
+                 <div class="logo">
+                     <img src="https://upload.wikimedia.org/wikipedia/commons/c/cf/Flag_of_Canada.svg"
+                         alt="Canadian Flag"
+-                        style="width: 28px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+-                    <span data-i18n="appTitle">DroneClear Configurator</span>
++                        style="width:28px; border-radius:4px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
++                    <span>DroneClear Configurator</span>
+                 </div>
+ 
+-                <!-- Version & Settings -->
+-                <div
+-                    style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 8px 12px; background: var(--bg-dark); border-radius: var(--radius-sm); border: 1px solid var(--border-color); box-shadow: var(--inset-shadow);">
+-                    <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">v1.0.0 | Build 26 | <span
+-                            id="total-parts-count">0 Parts</span></span>
+-                    <div class="lang-toggle"
+-                        style="display: flex; gap: 4px; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 4px;">
+-                        <button id="btn-lang-en" class="btn"
+-                            style="padding: 2px 6px; font-size: 10px; border: none; background: white; color: var(--accent-red); box-shadow: var(--card-shadow);">EN</button>
+-                        <button id="btn-lang-fr" class="btn"
+-                            style="padding: 2px 6px; font-size: 10px; border: none; background: transparent; color: var(--text-muted);">FR</button>
++                <div class="sidebar-meta">
++                    <span class="sidebar-meta-version">v1.0.0 | Build 26 | <span id="total-parts-count">0 Parts</span></span>
++                    <div class="lang-toggle">
++                        <button id="btn-lang-en" class="lang-btn active-lang">EN</button>
++                        <button id="btn-lang-fr" class="lang-btn">FR</button>
+                     </div>
+                 </div>
+ 
+-                <!-- Navigation Menu -->
+-                <div
+-                    style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+-                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+-                        <p class="nav-subtitle">2. PARTS LIBRARY EDITOR</p>
+-                    </div>
++                <nav class="sidebar-menu">
++                    <p class="nav-subtitle">2. PARTS LIBRARY EDITOR</p>
+ 
+                     <a href="/template/" class="btn btn-menu">
+                         <i class="ph ph-tree-structure"></i> Master Attributes
+                     </a>
+-
+                     <a href="/library/" class="btn btn-menu active">
+                         <i class="ph ph-books"></i> Parts Library Editor
+                     </a>
+-
+                     <a href="/" class="btn btn-menu">
+                         <i class="ph ph-magic-wand"></i> Model Builder
+                     </a>
+-                </div>
++                </nav>
++
+             </div>
+-            <nav class="sidebar-nav" id="editor-nav">
+-                <!-- Categories injected here -->
+-            </nav>
++
++            <!-- Category nav injected by editor.js -->
++            <nav class="sidebar-nav" id="editor-nav"></nav>
+         </aside>
+ 
+-        <!-- Main Content Area -->
+-        <main class="main-content" style="padding: 40px; overflow-y: auto;">
+-            <header class="topbar"
+-                style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+-                <h1 class="page-title" id="editor-title">Select a Category to Edit</h1>
+-                <div class="search-bar" title="Search across tags, component names, or PIDs">
++        <!-- Main -->
++        <main class="main-content">
++
++            <header class="topbar">
++                <h1 class="page-title" id="editor-title">Select a Category</h1>
++
++                <div class="search-bar" title="Search across component tags, names, or PIDs">
+                     <i class="ph ph-magnifying-glass search-icon"></i>
+-                    <input type="text" id="search-input" placeholder="Search across component tags or names...">
++                    <input type="text" id="search-input" placeholder="Search components...">
+                 </div>
++
++                <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
++                    <i class="ph ph-moon" id="dark-mode-icon"></i>
++                </button>
++                <button class="dark-mode-toggle" id="shortcuts-help-btn" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
++                    <i class="ph ph-keyboard"></i>
++                </button>
+             </header>
+ 
++            <!-- Loader -->
+             <div class="loader-container" id="editor-loader">
+                 <div class="spinner"></div>
+                 <p>Loading API Data...</p>
+             </div>
+ 
+-            <div id="editor-workspace" class="hidden" style="max-width: 900px;">
+-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+-                    <h2 id="workspace-subtitle" style="font-size: 20px; color: var(--text-main);">Components</h2>
+-                    <!-- Create New moved to FAB -->
+-                </div>
++            <!-- Editor workspace -->
++            <div id="editor-workspace" class="hidden editor-workspace">
+ 
+-                <div id="editor-items-list"
+-                    style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 40px;">
+-                    <!-- Items listed here -->
++                <div class="editor-workspace-header">
++                    <h2 id="workspace-subtitle" class="editor-workspace-title">Components</h2>
+                 </div>
+ 
+-                <div class="glass-panel hidden" id="item-form-container" style="padding: 32px;">
+-                    <h2 id="form-title" style="margin-bottom: 8px; color: var(--text-main);">Create New Part</h2>
++                <!-- Item list -->
++                <div id="editor-items-list" class="editor-items-list"></div>
++
++                <!-- Component form panel -->
++                <div class="glass-panel hidden editor-panel" id="item-form-container">
++                    <h2 id="form-title" class="editor-panel-title">Create New Part</h2>
+                     <form id="component-form" class="editor-form">
+-                        <!-- Standard Fields -->
++
+                         <div class="form-group">
+-                            <label>PID</label>
+-                            <input type="text" id="field-pid" required placeholder="e.g. MTR-0002">
++                            <label class="form-label">PID</label>
++                            <input class="form-input" type="text" id="field-pid" required placeholder="e.g. MTR-0002">
+                         </div>
+                         <div class="form-group">
+-                            <label>Name</label>
+-                            <input type="text" id="field-name" required>
++                            <label class="form-label">Name</label>
++                            <input class="form-input" type="text" id="field-name" required>
+                         </div>
+-                        <div class="form-group half-width">
+-                            <label>Manufacturer</label>
+-                            <input type="text" id="field-mfg" placeholder="e.g. iFlight">
++                        <div class="form-group">
++                            <label class="form-label">Manufacturer</label>
++                            <input class="form-input" type="text" id="field-mfg" placeholder="e.g. iFlight">
+                         </div>
+-                        <div class="form-group half-width">
+-                            <label>Approx Price</label>
+-                            <input type="text" id="field-price" placeholder="$0.00">
++                        <div class="form-group">
++                            <label class="form-label">Approx Price</label>
++                            <input class="form-input" type="text" id="field-price" placeholder="$0.00">
+                         </div>
+-                        <div class="form-group full-width">
+-                            <label>Description</label>
+-                            <textarea id="field-desc" rows="3"></textarea>
++                        <div class="form-group form-group--full">
++                            <label class="form-label">Description</label>
++                            <textarea class="form-input form-textarea" id="field-desc" rows="3"></textarea>
+                         </div>
+-                        <div class="form-group half-width">
+-                            <label>Thumbnail Image URL / Path</label>
+-                            <input type="text" id="field-image" placeholder="https://example.com/image.jpg">
++                        <div class="form-group">
++                            <label class="form-label">Thumbnail Image URL</label>
++                            <input class="form-input" type="text" id="field-image" placeholder="https://example.com/image.jpg">
+                         </div>
+-                        <div class="form-group half-width">
+-                            <label>Manual / PDF Link</label>
+-                            <input type="text" id="field-manual" placeholder="https://example.com/manual.pdf">
++                        <div class="form-group">
++                            <label class="form-label">Manual / PDF Link</label>
++                            <input class="form-input" type="text" id="field-manual" placeholder="https://example.com/manual.pdf">
+                         </div>
+ 
+-                        <!-- Dynamic Fields injected here -->
+-                        <div class="schema-section" id="dynamic-fields-container">
+-                            <h3>Dynamic Schema Attributes</h3>
+-                            <div class="editor-form" id="dynamic-fields-grid" style="margin-top:0;">
+-                                <!-- Fields generated by JS from v2 schema -->
+-                            </div>
++                        <!-- Dynamic schema fields -->
++                        <div class="form-section" id="dynamic-fields-container">
++                            <h3 class="form-section-title"><i class="ph ph-sliders"></i> Schema Attributes</h3>
++                            <div class="editor-form" id="dynamic-fields-grid"></div>
+                         </div>
+ 
+-                        <!-- NEW: Dedicated Compatibility Section -->
+-                        <div class="schema-section" id="compatibility-section" style="display: none;">
+-                            <h3>Compatibility Rules</h3>
+-                            <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">Define strict
+-                                physical constraints for the Build Engine.</p>
+-                            <div class="editor-form" id="compatibility-fields-grid"
+-                                style="margin-top:0; border: 1px dashed rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+-                                <!-- Fields generated by JS -->
+-                            </div>
++                        <!-- Compatibility rules -->
++                        <div class="form-section hidden" id="compatibility-section">
++                            <h3 class="form-section-title"><i class="ph ph-link"></i> Compatibility Rules</h3>
++                            <p class="form-section-hint">Define strict physical constraints for the Build Engine.</p>
++                            <div class="editor-form compat-grid" id="compatibility-fields-grid"></div>
+                         </div>
+ 
+-                        <div class="form-actions" style="justify-content: space-between;">
++                        <div class="form-actions">
+                             <div>
+-                                <button type="button" class="btn btn-outline" id="btn-delete"
+-                                    style="color: var(--negative-red); border-color: rgba(239, 68, 68, 0.3); display: none;">Delete</button>
++                                <button type="button" class="btn btn-danger hidden" id="btn-delete">
++                                    <i class="ph ph-trash"></i> Delete
++                                </button>
+                             </div>
+-                            <div>
++                            <div class="form-actions-right">
+                                 <button type="button" class="btn btn-outline" id="btn-cancel">Cancel</button>
+-                                <button type="submit" class="btn btn-primary" id="btn-save">Save to Database</button>
++                                <button type="submit" class="btn btn-primary" id="btn-save">
++                                    <i class="ph ph-floppy-disk"></i> Save to Database
++                                </button>
+                             </div>
+                         </div>
+                     </form>
+                 </div>
+ 
+-                <div class="glass-panel hidden" id="drone-form-container" style="padding: 32px;">
+-                    <h2 id="drone-form-title" style="margin-bottom: 8px; color: var(--text-main);">Create New Drone
+-                        Model</h2>
++                <!-- Drone model form panel -->
++                <div class="glass-panel hidden editor-panel" id="drone-form-container">
++                    <h2 id="drone-form-title" class="editor-panel-title">Create New Drone Model</h2>
+                     <form id="drone-form" class="editor-form">
++
+                         <div class="form-group">
+-                            <label>Model PID</label>
+-                            <input type="text" id="df-pid" required placeholder="e.g. MDL-0001">
++                            <label class="form-label">Model PID</label>
++                            <input class="form-input" type="text" id="df-pid" required placeholder="e.g. MDL-0001">
+                         </div>
+                         <div class="form-group">
+-                            <label>Name</label>
+-                            <input type="text" id="df-name" required>
++                            <label class="form-label">Name</label>
++                            <input class="form-input" type="text" id="df-name" required>
+                         </div>
+                         <div class="form-group">
+-                            <label>Vehicle Type</label>
+-                            <input type="text" id="df-type" placeholder="e.g. quad">
++                            <label class="form-label">Vehicle Type</label>
++                            <input class="form-input" type="text" id="df-type" placeholder="e.g. quad">
+                         </div>
+                         <div class="form-group">
+-                            <label>Build Class</label>
+-                            <input type="text" id="df-class" placeholder="e.g. 5inch_freestyle">
++                            <label class="form-label">Build Class</label>
++                            <input class="form-input" type="text" id="df-class" placeholder="e.g. 5inch_freestyle">
+                         </div>
+-                        <div class="form-group full-width">
+-                            <label>Description</label>
+-                            <textarea id="df-desc" rows="3"></textarea>
++                        <div class="form-group form-group--full">
++                            <label class="form-label">Description</label>
++                            <textarea class="form-input form-textarea" id="df-desc" rows="3"></textarea>
+                         </div>
+-                        <div class="form-group half-width">
+-                            <label>Thumbnail Image URL / Path</label>
+-                            <input type="text" id="df-image" placeholder="https://example.com/image.jpg">
++                        <div class="form-group">
++                            <label class="form-label">Thumbnail Image URL</label>
++                            <input class="form-input" type="text" id="df-image" placeholder="https://example.com/image.jpg">
+                         </div>
+-                        <div class="form-group half-width">
+-                            <label>Manual / PDF Link</label>
+-                            <input type="text" id="df-manual" placeholder="https://example.com/manual.pdf">
++                        <div class="form-group">
++                            <label class="form-label">Manual / PDF Link</label>
++                            <input class="form-input" type="text" id="df-manual" placeholder="https://example.com/manual.pdf">
+                         </div>
+ 
+-                        <div class="schema-section full-width">
+-                            <h3>Component Relations</h3>
+-                            <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">Map the parts used
+-                                in this build by specifying their JSON lists, e.g.
+-                                <code>{"frames": [{"pid": "FRM-0001"}], "motors": [{"pid": "MTR-0001", "quantity": 4}]}</code>.
+-                            </p>
+-                            <textarea id="df-relations" rows="10"
+-                                style="width:100%; font-family:monospace; background: rgba(0,0,0,0.2);"></textarea>
++                        <div class="form-section form-group--full">
++                            <h3 class="form-section-title"><i class="ph ph-graph"></i> Component Relations</h3>
++                            <p class="form-section-hint">Map parts used in this build as JSON, e.g. <code class="inline-code">{"frames": [{"pid": "FRM-0001"}]}</code></p>
++                            <textarea class="form-input form-textarea code-editor" id="df-relations" rows="10"></textarea>
+                         </div>
+ 
+-                        <div class="form-actions" style="justify-content: space-between;">
++                        <div class="form-actions">
+                             <div>
+-                                <button type="button" class="btn btn-outline" id="btn-drone-delete"
+-                                    style="color: var(--negative-red); border-color: rgba(239, 68, 68, 0.3); display: none;">Delete</button>
++                                <button type="button" class="btn btn-danger hidden" id="btn-drone-delete">
++                                    <i class="ph ph-trash"></i> Delete
++                                </button>
+                             </div>
+-                            <div>
++                            <div class="form-actions-right">
+                                 <button type="button" class="btn btn-outline" id="btn-drone-cancel">Cancel</button>
+-                                <button type="submit" class="btn btn-primary" id="btn-drone-save">Save Drone
+-                                    Model</button>
++                                <button type="submit" class="btn btn-primary" id="btn-drone-save">
++                                    <i class="ph ph-floppy-disk"></i> Save Drone Model
++                                </button>
+                             </div>
+                         </div>
+                     </form>
+                 </div>
++
+             </div>
+         </main>
+     </div>
+ 
+-    <!-- Dev Utilities & Config (Fixed to Bottom Left) -->
+-    <div
+-        style="position: fixed; bottom: 24px; left: 24px; z-index: 100; width: 232px; background: var(--bg-dark); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); box-shadow: var(--inset-shadow);">
+-        <div style="display: flex; justify-content: space-between; align-items: center;">
+-            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">v1.0.0 | Build 26 | <span
+-                    id="total-parts-count">0 Parts</span></span>
+-            <span style="font-size: 10px; color: var(--text-muted);">Editor Mode</span>
+-        </div>
+-    </div>
+-
+     <button class="fab-bottom-right hidden" id="btn-create-new">
+         <i class="ph ph-plus"></i> Create New
+     </button>
+-    </div>
+-    <script src="{% static 'editor.js' %}?v=3"></script>
++
++    <script src="{% static 'editor.js' %}?v=4"></script>
+     <script>
++        (function () {
++            function applyTheme(dark) {
++                document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
++                const icon = document.getElementById('dark-mode-icon');
++                const btn = document.getElementById('dark-mode-toggle');
++                if (icon) icon.className = dark ? 'ph ph-sun' : 'ph ph-moon';
++                if (btn) btn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
++            }
++            document.getElementById('dark-mode-toggle')?.addEventListener('click', function () {
++                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
++                applyTheme(!isDark);
++                localStorage.setItem('dc-theme', !isDark ? 'dark' : 'light');
++            });
++            const saved = localStorage.getItem('dc-theme');
++            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
++            applyTheme(saved ? saved === 'dark' : prefersDark);
++        })();
++
+         document.addEventListener('DOMContentLoaded', () => {
+             const toggle = document.getElementById('mobile-nav-toggle');
+             const sidebar = document.querySelector('.sidebar');
+             if (toggle && sidebar) {
+-                toggle.addEventListener('click', () => {
+-                    sidebar.classList.toggle('open');
+-                });
+-                // Close sidebar if clicking outside on mobile
++                toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+                 document.addEventListener('click', (e) => {
+-                    if (window.innerWidth <= 768) {
+-                        if (!sidebar.contains(e.target) && !toggle.contains(e.target) && sidebar.classList.contains('open')) {
+-                            sidebar.classList.remove('open');
+-                        }
+-                    }
++                    if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !toggle.contains(e.target))
++                        sidebar.classList.remove('open');
+                 });
+             }
+         });
+     </script>
+ </body>
+ 
+-</html>
+\ No newline at end of file
++</html>
+diff --git a/DroneClear Components Visualizer/style.css b/DroneClear Components Visualizer/style.css
+index 846e9d2..b3bfd37 100644
+--- a/DroneClear Components Visualizer/style.css	
++++ b/DroneClear Components Visualizer/style.css	
+@@ -2150,4 +2150,318 @@ input[type="file"] {
+     color: var(--text-faint);
+     text-align: center;
+     background: var(--bg-panel-hover);
++}
++
++/* ============================================================
++   SHARED SIDEBAR COMPONENTS (all pages)
++   ============================================================ */
++
++.sidebar-meta {
++    display: flex;
++    justify-content: space-between;
++    align-items: center;
++    margin-top: 16px;
++    padding: 8px 12px;
++    background: var(--bg-dark);
++    border-radius: var(--radius-sm);
++    border: 1px solid var(--border-color);
++    box-shadow: var(--inset-shadow);
++}
++
++.sidebar-meta-version {
++    font-size: 11px;
++    font-weight: 700;
++    color: var(--text-muted);
++}
++
++.lang-toggle {
++    display: flex;
++    gap: 4px;
++    background: rgba(0, 0, 0, 0.05);
++    padding: 2px;
++    border-radius: 4px;
++}
++
++[data-theme="dark"] .lang-toggle {
++    background: rgba(255, 255, 255, 0.06);
++}
++
++.lang-btn {
++    padding: 2px 8px;
++    font-size: 10px;
++    font-weight: 700;
++    font-family: inherit;
++    border: none;
++    background: transparent;
++    color: var(--text-muted);
++    border-radius: 3px;
++    cursor: pointer;
++    transition: background 0.15s, color 0.15s;
++}
++
++.lang-btn.active-lang {
++    background: var(--bg-panel);
++    color: var(--accent-red);
++    box-shadow: var(--card-shadow);
++}
++
++.sidebar-menu {
++    display: flex;
++    flex-direction: column;
++    gap: 8px;
++    margin-top: 16px;
++    padding-top: 16px;
++    border-top: 1px solid var(--border-color);
++}
++
++.sidebar-hint {
++    padding: 16px 4px 0;
++    color: var(--text-muted);
++    font-size: 13px;
++    line-height: 1.6;
++}
++
++/* ============================================================
++   TEMPLATE PAGE
++   ============================================================ */
++
++.template-workspace {
++    flex: 1;
++    display: flex;
++    flex-direction: column;
++    overflow: hidden;
++    min-height: 0;
++}
++
++.visual-editor-container {
++    flex: 1;
++    overflow-y: auto;
++    display: flex;
++    flex-direction: column;
++    gap: 16px;
++    padding-right: 8px;
++    padding-bottom: 40px;
++}
++
++/* Code / JSON textarea ΓÇö shared between template raw view & drone relations */
++.code-editor {
++    flex: 1;
++    width: 100%;
++    background: var(--bg-dark);
++    color: #a5b4fc;
++    font-family: 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
++    font-size: 13px;
++    line-height: 1.6;
++    padding: 20px;
++    border: 1px solid var(--border-color);
++    border-radius: var(--radius-md);
++    outline: none;
++    resize: vertical;
++    transition: border-color 0.15s;
++}
++
++.code-editor:focus {
++    border-color: var(--accent-blue);
++}
++
++[data-theme="dark"] .code-editor {
++    background: #0a0a0f;
++    border-color: var(--border-color);
++}
++
++/* ============================================================
++   EDITOR PAGE ΓÇö workspace, item list, forms
++   ============================================================ */
++
++.editor-workspace {
++    max-width: 960px;
++    padding-bottom: 80px;
++}
++
++.editor-workspace-header {
++    display: flex;
++    justify-content: space-between;
++    align-items: center;
++    margin-bottom: 20px;
++}
++
++.editor-workspace-title {
++    font-size: 20px;
++    font-weight: 700;
++    color: var(--text-main);
++}
++
++/* Item rows in the list */
++.editor-items-list {
++    display: flex;
++    flex-direction: column;
++    gap: 6px;
++    margin-bottom: 32px;
++}
++
++.item-row {
++    display: flex;
++    justify-content: space-between;
++    align-items: center;
++    background: var(--bg-panel);
++    padding: 12px 16px;
++    border-radius: var(--radius-sm);
++    border: 1px solid var(--border-color);
++    cursor: pointer;
++    transition: background 0.15s, border-color 0.15s, transform 0.15s;
++}
++
++.item-row:hover {
++    background: var(--bg-panel-hover);
++    border-color: var(--accent-blue);
++    transform: translateX(2px);
++}
++
++/* Editor form panels */
++.editor-panel {
++    padding: 32px;
++    margin-bottom: 24px;
++}
++
++.editor-panel-title {
++    font-size: 20px;
++    font-weight: 700;
++    color: var(--text-main);
++    margin-bottom: 24px;
++    padding-bottom: 16px;
++    border-bottom: 1px solid var(--border-color);
++}
++
++/* 2-col grid form */
++.editor-form {
++    display: grid;
++    grid-template-columns: 1fr 1fr;
++    gap: 16px;
++}
++
++.form-group {
++    display: flex;
++    flex-direction: column;
++    gap: 6px;
++}
++
++.form-group--full {
++    grid-column: 1 / -1;
++}
++
++.form-label {
++    font-size: 12px;
++    font-weight: 600;
++    color: var(--text-muted);
++    text-transform: uppercase;
++    letter-spacing: 0.04em;
++}
++
++.form-input {
++    background: var(--bg-dark);
++    border: 1px solid var(--border-color);
++    color: var(--text-main);
++    padding: 10px 12px;
++    border-radius: var(--radius-sm);
++    outline: none;
++    font-family: inherit;
++    font-size: 14px;
++    transition: border-color 0.15s, box-shadow 0.15s;
++}
++
++.form-input:focus {
++    border-color: var(--accent-blue);
++    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
++}
++
++.form-textarea {
++    resize: vertical;
++    min-height: 80px;
++}
++
++/* Section dividers inside the form */
++.form-section {
++    grid-column: 1 / -1;
++    margin-top: 8px;
++    padding-top: 24px;
++    border-top: 1px solid var(--border-color);
++}
++
++.form-section-title {
++    font-size: 14px;
++    font-weight: 700;
++    color: var(--text-main);
++    margin-bottom: 12px;
++    display: flex;
++    align-items: center;
++    gap: 8px;
++}
++
++.form-section-title i {
++    color: var(--accent-red);
++    font-size: 16px;
++}
++
++.form-section-hint {
++    font-size: 13px;
++    color: var(--text-muted);
++    margin-bottom: 14px;
++    line-height: 1.5;
++}
++
++.compat-grid {
++    border: 1px dashed var(--border-hover);
++    padding: 16px;
++    border-radius: var(--radius-sm);
++}
++
++/* Form action bar */
++.form-actions {
++    grid-column: 1 / -1;
++    display: flex;
++    justify-content: space-between;
++    align-items: center;
++    padding-top: 20px;
++    margin-top: 8px;
++    border-top: 1px solid var(--border-color);
++    gap: 12px;
++}
++
++.form-actions-right {
++    display: flex;
++    gap: 10px;
++}
++
++/* Danger button */
++.btn-danger {
++    background: transparent;
++    border: 1px solid rgba(220, 38, 38, 0.35);
++    color: #dc2626;
++    padding: 8px 16px;
++    border-radius: var(--radius-sm);
++    font-family: inherit;
++    font-size: 14px;
++    font-weight: 600;
++    cursor: pointer;
++    display: inline-flex;
++    align-items: center;
++    gap: 6px;
++    transition: background 0.15s, border-color 0.15s;
++}
++
++.btn-danger:hover {
++    background: rgba(220, 38, 38, 0.08);
++    border-color: rgba(220, 38, 38, 0.6);
++}
++
++/* Inline code snippet */
++.inline-code {
++    background: var(--bg-dark);
++    border: 1px solid var(--border-color);
++    border-radius: 4px;
++    padding: 1px 6px;
++    font-family: 'SF Mono', 'Consolas', monospace;
++    font-size: 12px;
++    color: var(--accent-blue);
++    word-break: break-all;
+ }
+\ No newline at end of file
+diff --git a/DroneClear Components Visualizer/template.html b/DroneClear Components Visualizer/template.html
+index d4349ad..e02f2b3 100644
+--- a/DroneClear Components Visualizer/template.html	
++++ b/DroneClear Components Visualizer/template.html	
+@@ -1,170 +1,157 @@
+ {% load static %}
+ <!DOCTYPE html>
+-<html lang="en">
++<html lang="en" data-theme="light">
+ 
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Master Attribute Template</title>
+-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+-        rel="stylesheet">
+-    <link rel="stylesheet" href="{% static 'style.css' %}?v=3">
++    <title>Master Attributes ΓÇö DroneClear</title>
++    <link rel="preconnect" href="https://fonts.googleapis.com">
++    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
++    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
++    <link rel="stylesheet" href="{% static 'style.css' %}?v=4">
+     <script src="https://unpkg.com/@phosphor-icons/web"></script>
++    <script>
++        // Apply saved theme before paint to avoid flash
++        (function () {
++            const saved = localStorage.getItem('dc-theme');
++            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
++            document.documentElement.setAttribute('data-theme', saved ? saved : (prefersDark ? 'dark' : 'light'));
++        })();
++    </script>
+ </head>
+ 
+ <body>
+     <div class="app-container">
++
+         <!-- Mobile Nav Toggle -->
+-        <button class="mobile-nav-toggle" id="mobile-nav-toggle" style="display: none;">
+-            <i class="ph ph-list" style="font-size: 24px;"></i>
++        <button class="mobile-nav-toggle" id="mobile-nav-toggle" style="display:none;">
++            <i class="ph ph-list" style="font-size:24px;"></i>
+         </button>
+ 
+-        <!-- Sidebar Navigation -->
+-        <aside class="sidebar" style="display: flex; flex-direction: column; justify-content: space-between;">
+-            <div>
+-                <div class="sidebar-header" style="position: relative;">
+-                    <div class="logo">
+-                        <img src="https://upload.wikimedia.org/wikipedia/commons/c/cf/Flag_of_Canada.svg"
+-                            alt="Canadian Flag"
+-                            style="width: 28px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+-                        <span data-i18n="appTitle">DroneClear Configurator</span>
+-                    </div>
++        <!-- Sidebar -->
++        <aside class="sidebar">
++            <div class="sidebar-header">
+ 
+-                    <!-- Version & Settings -->
+-                    <div
+-                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 8px 12px; background: var(--bg-dark); border-radius: var(--radius-sm); border: 1px solid var(--border-color); box-shadow: var(--inset-shadow);">
+-                        <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">v1.0.0 | Build 26 |
+-                            <span id="total-parts-count">0 Parts</span></span>
+-                        <div class="lang-toggle"
+-                            style="display: flex; gap: 4px; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 4px;">
+-                            <button id="btn-lang-en" class="btn"
+-                                style="padding: 2px 6px; font-size: 10px; border: none; background: white; color: var(--accent-red); box-shadow: var(--card-shadow);">EN</button>
+-                            <button id="btn-lang-fr" class="btn"
+-                                style="padding: 2px 6px; font-size: 10px; border: none; background: transparent; color: var(--text-muted);">FR</button>
+-                        </div>
+-                    </div>
++                <div class="logo">
++                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/cf/Flag_of_Canada.svg"
++                        alt="Canadian Flag"
++                        style="width:28px; border-radius:4px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
++                    <span>DroneClear Configurator</span>
++                </div>
+ 
+-                    <!-- Navigation Menu -->
+-                    <div
+-                        style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+-                        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+-                            <p class="nav-subtitle">1. MASTER ATTRIBUTES</p>
+-                        </div>
+-
+-                        <a href="/template/" class="btn btn-menu active">
+-                            <i class="ph ph-tree-structure"></i> Master Attributes
+-                        </a>
+-                        <!-- Sub-menu Action under Master Attributes -->
+-                        <div class="file-upload-wrapper">
+-                            <label for="schema-upload" class="btn btn-sub-menu" id="upload-label"
+-                                style="display: flex; margin-bottom: 0;">
+-                                <i class="ph ph-upload-simple"></i>
+-                                <span>Import JSON</span>
+-                            </label>
+-                            <input type="file" id="schema-upload" accept=".json" style="display:none;">
+-                        </div>
+-
+-                        <a href="/library/" class="btn btn-menu">
+-                            <i class="ph ph-books"></i> Parts Library Editor
+-                        </a>
+-
+-                        <a href="/" class="btn btn-menu">
+-                            <i class="ph ph-magic-wand"></i> Model Builder
+-                        </a>
++                <div class="sidebar-meta">
++                    <span class="sidebar-meta-version">v1.0.0 | Build 26 | <span id="total-parts-count">0 Parts</span></span>
++                    <div class="lang-toggle">
++                        <button id="btn-lang-en" class="lang-btn active-lang">EN</button>
++                        <button id="btn-lang-fr" class="lang-btn">FR</button>
+                     </div>
+                 </div>
+-                <div style="padding: 24px;">
+-                    <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">
+-                        This template is the blueprint for your drone catalog. Every category, attribute, and
+-                        compatibility rule is defined here.
+-                    </p>
+-                </div>
++
++                <nav class="sidebar-menu">
++                    <p class="nav-subtitle">1. MASTER ATTRIBUTES</p>
++
++                    <a href="/template/" class="btn btn-menu active">
++                        <i class="ph ph-tree-structure"></i> Master Attributes
++                    </a>
++                    <label for="schema-upload" class="btn btn-sub-menu">
++                        <i class="ph ph-upload-simple"></i> Import JSON
++                    </label>
++                    <input type="file" id="schema-upload" accept=".json" style="display:none;">
++
++                    <a href="/library/" class="btn btn-menu">
++                        <i class="ph ph-books"></i> Parts Library Editor
++                    </a>
++                    <a href="/" class="btn btn-menu">
++                        <i class="ph ph-magic-wand"></i> Model Builder
++                    </a>
++                </nav>
++
++                <p class="sidebar-hint">
++                    This template is the blueprint for your drone catalog. Every category, attribute, and compatibility rule is defined here.
++                </p>
++
+             </div>
+         </aside>
+ 
+-        <!-- Main Content Area -->
+-        <main class="main-content" style="padding: 40px; display: flex; flex-direction: column;">
+-            <header class="topbar"
+-                style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+-                <div>
+-                    <h1 class="page-title">Master Attribute Template</h1>
+-                    <p style="color: var(--text-muted); margin-top: 8px;">The source of truth for all components and
+-                        DroneClear compatibility logic.</p>
++        <!-- Main -->
++        <main class="main-content">
++
++            <header class="topbar">
++                <h1 class="page-title">Master Attributes</h1>
++
++                <div class="search-bar" title="Search across Master Attributes">
++                    <i class="ph ph-magnifying-glass search-icon"></i>
++                    <input type="text" id="search-input" placeholder="Search Master Schema...">
+                 </div>
+-                <div style="display: flex; align-items: center; gap: 16px;">
+-                    <!-- Search Bar -->
+-                    <div class="search-bar" title="Search across Master Attributes">
+-                        <i class="ph ph-magnifying-glass search-icon"></i>
+-                        <input type="text" id="search-input" placeholder="Search Master Schema...">
+-                    </div>
+-                    <!-- View Toggle Buttons -->
+-                    <div class="view-toggles"
+-                        style="display: flex; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 4px; border: 1px solid rgba(255,255,255,0.05);">
+-                        <button class="btn btn-outline active-toggle" id="btn-view-visual"
+-                            style="border: none; padding: 8px 16px;">
+-                            <i class="ph ph-squares-four"></i> Visual Editor
+-                        </button>
+-                        <button class="btn btn-outline" id="btn-view-json" style="border: none; padding: 8px 16px;">
+-                            <i class="ph ph-code"></i> Raw JSON
+-                        </button>
+-                    </div>
++
++                <div class="view-toggle" style="flex-shrink:0;">
++                    <button class="view-toggle-btn active" id="btn-view-visual" title="Visual Editor">
++                        <i class="ph ph-squares-four"></i> Visual
++                    </button>
++                    <button class="view-toggle-btn" id="btn-view-json" title="Raw JSON">
++                        <i class="ph ph-code"></i> JSON
++                    </button>
+                 </div>
++
++                <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
++                    <i class="ph ph-moon" id="dark-mode-icon"></i>
++                </button>
++                <button class="dark-mode-toggle" id="shortcuts-help-btn" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
++                    <i class="ph ph-keyboard"></i>
++                </button>
+             </header>
+ 
+             <div class="loader-container" id="template-loader">
+                 <div class="spinner"></div>
+-                <p>Fetching Master Schema from API...</p>
++                <p>Fetching Master Schema...</p>
+             </div>
+ 
+-            <div id="template-workspace" class="hidden"
+-                style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+-                <!-- Raw JSON View -->
+-                <textarea id="schema-editor" spellcheck="false" class="hidden"
+-                    style="flex: 1; width: 100%; background: #0a0a0b; color: #a5b4fc; font-family: 'Consolas', monospace; font-size: 14px; line-height: 1.5; padding: 24px; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); outline: none; resize: none;"></textarea>
+-
+-                <!-- Visual Editor View -->
+-                <div id="visual-editor-container"
+-                    style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 12px;">
+-                    <!-- Categories will be injected here by JS -->
+-                </div>
++            <div id="template-workspace" class="hidden template-workspace">
++                <textarea id="schema-editor" spellcheck="false" class="hidden code-editor"></textarea>
++                <div id="visual-editor-container" class="visual-editor-container"></div>
+             </div>
+-        </main>
+-    </div>
+ 
+-    <!-- Dev Utilities & Config (Fixed to Bottom Left) -->
+-    <div
+-        style="position: fixed; bottom: 24px; left: 24px; z-index: 100; width: 232px; background: var(--bg-dark); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); box-shadow: var(--inset-shadow);">
+-        <div style="display: flex; justify-content: space-between; align-items: center;">
+-            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">v1.0.0 | Build 26 | <span
+-                    id="total-parts-count">0 Parts</span></span>
+-            <span style="font-size: 10px; color: var(--text-muted);">Master Mode</span>
+-        </div>
++        </main>
+     </div>
+ 
+     <button class="fab-bottom-right" id="btn-save-schema">
+         <i class="ph ph-floppy-disk"></i>
+         <span>Save Master Template</span>
+     </button>
+-    <script src="{% static 'template.js' %}?v=3"></script>
++
++    <script src="{% static 'template.js' %}?v=4"></script>
+     <script>
++        (function () {
++            function applyTheme(dark) {
++                document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
++                const icon = document.getElementById('dark-mode-icon');
++                const btn = document.getElementById('dark-mode-toggle');
++                if (icon) icon.className = dark ? 'ph ph-sun' : 'ph ph-moon';
++                if (btn) btn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
++            }
++            document.getElementById('dark-mode-toggle')?.addEventListener('click', function () {
++                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
++                applyTheme(!isDark);
++                localStorage.setItem('dc-theme', !isDark ? 'dark' : 'light');
++            });
++            const saved = localStorage.getItem('dc-theme');
++            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
++            applyTheme(saved ? saved === 'dark' : prefersDark);
++        })();
++
+         document.addEventListener('DOMContentLoaded', () => {
+             const toggle = document.getElementById('mobile-nav-toggle');
+             const sidebar = document.querySelector('.sidebar');
+             if (toggle && sidebar) {
+-                toggle.addEventListener('click', () => {
+-                    sidebar.classList.toggle('open');
+-                });
+-                // Close sidebar if clicking outside on mobile
++                toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+                 document.addEventListener('click', (e) => {
+-                    if (window.innerWidth <= 768) {
+-                        if (!sidebar.contains(e.target) && !toggle.contains(e.target) && sidebar.classList.contains('open')) {
+-                            sidebar.classList.remove('open');
+-                        }
+-                    }
++                    if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !toggle.contains(e.target))
++                        sidebar.classList.remove('open');
+                 });
+             }
+         });
+     </script>
+ </body>
+ 
+-</html>
+\ No newline at end of file
++</html>
