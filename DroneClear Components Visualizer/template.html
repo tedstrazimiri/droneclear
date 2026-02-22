@@ -8,8 +8,18 @@
     <title>Master Attributes — DroneClear</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'style.css' %}?v=4">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'style.css' %}?v=5">
+
+    <!-- CodeMirror for JSON Editing -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/material-darker.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>
+
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script>
         // Apply saved theme before paint to avoid flash
@@ -24,10 +34,8 @@
 <body>
     <div class="app-container">
 
-        <!-- Mobile Nav Toggle -->
-        <button class="mobile-nav-toggle" id="mobile-nav-toggle" style="display:none;">
-            <i class="ph ph-list" style="font-size:24px;"></i>
-        </button>
+        <!-- Sidebar Overlay (Mobile) -->
+        <div class="sidebar-overlay hidden" id="sidebar-overlay"></div>
 
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -41,7 +49,8 @@
                 </div>
 
                 <div class="sidebar-meta">
-                    <span class="sidebar-meta-version">v1.0.0 | Build 26 | <span id="total-parts-count">0 Parts</span></span>
+                    <span class="sidebar-meta-version">v1.0.0 | Build 26 | <span id="total-parts-count">0
+                            Parts</span></span>
                     <div class="lang-toggle">
                         <button id="btn-lang-en" class="lang-btn active-lang">EN</button>
                         <button id="btn-lang-fr" class="lang-btn">FR</button>
@@ -68,7 +77,8 @@
                 </nav>
 
                 <p class="sidebar-hint">
-                    This template is the blueprint for your drone catalog. Every category, attribute, and compatibility rule is defined here.
+                    This template is the blueprint for your drone catalog. Every category, attribute, and compatibility
+                    rule is defined here.
                 </p>
 
             </div>
@@ -77,29 +87,64 @@
         <!-- Main -->
         <main class="main-content">
 
-            <header class="topbar">
-                <h1 class="page-title">Master Attributes</h1>
+            <header class="topbar" style="align-items: flex-start; flex-direction: column; gap: 16px;">
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button class="mobile-nav-toggle" id="mobile-nav-toggle"
+                            style="display:none; background:none; border:none; cursor:pointer; color:var(--text-main);">
+                            <i class="ph ph-list" style="font-size:28px;"></i>
+                        </button>
+                        <h1 class="page-title">Master Attributes</h1>
+                    </div>
 
-                <div class="search-bar" title="Search across Master Attributes">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div class="view-toggle-container" title="Toggle View Mode"
+                            style="display: flex; align-items: center; gap: 12px;">
+                            <span id="label-visual"
+                                style="font-size: 14px; font-weight: 600; color: var(--text-main); transition: color 0.3s;">Visual</span>
+                            <label class="theme-switch" style="margin: 0;">
+                                <input type="checkbox" id="view-mode-toggle">
+                                <span class="slider round"></span>
+                            </label>
+                            <span id="label-json"
+                                style="font-size: 14px; font-weight: 600; color: var(--text-muted); transition: color 0.3s;">JSON</span>
+                        </div>
+
+                        <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
+
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary" id="btn-add-category"
+                                style="padding: 6px 14px; font-size: 13px; background: var(--accent-red); box-shadow: 0 2px 8px rgba(218, 41, 28, 0.3);"
+                                title="Add New Category">
+                                <i class="ph ph-plus"></i> Category
+                            </button>
+                            <button class="btn btn-outline" id="btn-export-json"
+                                style="padding: 6px 14px; font-size: 13px;" title="Export JSON">
+                                <i class="ph ph-export"></i> Export
+                            </button>
+                            <button class="btn btn-primary" id="btn-save-schema"
+                                style="padding: 6px 14px; font-size: 13px;" title="Save Master Template">
+                                <i class="ph ph-floppy-disk"></i> Save
+                            </button>
+                        </div>
+
+                        <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
+
+                        <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode"
+                            aria-label="Toggle dark mode">
+                            <i class="ph ph-moon" id="dark-mode-icon"></i>
+                        </button>
+                        <button class="dark-mode-toggle" id="shortcuts-help-btn" title="Keyboard shortcuts (?)"
+                            aria-label="Show keyboard shortcuts">
+                            <i class="ph ph-keyboard"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="search-bar" title="Search across Master Attributes" style="width: 100%; max-width: 500px;">
                     <i class="ph ph-magnifying-glass search-icon"></i>
                     <input type="text" id="search-input" placeholder="Search Master Schema...">
                 </div>
-
-                <div class="view-toggle" style="flex-shrink:0;">
-                    <button class="view-toggle-btn active" id="btn-view-visual" title="Visual Editor">
-                        <i class="ph ph-squares-four"></i> Visual
-                    </button>
-                    <button class="view-toggle-btn" id="btn-view-json" title="Raw JSON">
-                        <i class="ph ph-code"></i> JSON
-                    </button>
-                </div>
-
-                <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
-                    <i class="ph ph-moon" id="dark-mode-icon"></i>
-                </button>
-                <button class="dark-mode-toggle" id="shortcuts-help-btn" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
-                    <i class="ph ph-keyboard"></i>
-                </button>
             </header>
 
             <div class="loader-container" id="template-loader">
@@ -115,12 +160,83 @@
         </main>
     </div>
 
-    <button class="fab-bottom-right" id="btn-save-schema">
-        <i class="ph ph-floppy-disk"></i>
-        <span>Save Master Template</span>
-    </button>
 
-    <script src="{% static 'template.js' %}?v=4"></script>
+    <!-- Category Modal -->
+    <div id="category-modal" class="modal-overlay hidden">
+        <div class="glass-panel" style="max-width: 500px;">
+            <div class="modal-close" id="close-category-modal"><i class="ph ph-x"></i></div>
+            <div class="modal-header">
+                <div class="modal-title-area">
+                    <h2 id="category-modal-title">Add Category</h2>
+                    <p class="modal-desc" style="margin-bottom:0;">Enter a name for the new component category.</p>
+                </div>
+            </div>
+            <div class="modal-body-scroll">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Category Name (e.g.
+                        Flight Controllers)</label>
+                    <input type="text" id="category-name-input"
+                        style="background: var(--bg-dark); border: 1px solid var(--border-scroll-color, var(--border-color)); color: var(--text-main); padding: 12px; border-radius: var(--radius-sm); outline:none; font-size: 15px; width: 100%; box-shadow: var(--inset-shadow);"
+                        placeholder="New Category...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="btn-cancel-category">Cancel</button>
+                <button class="btn btn-primary" id="btn-save-category">Save Category</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attribute Modal -->
+    <div id="attribute-modal" class="modal-overlay hidden">
+        <div class="glass-panel" style="max-width: 600px;">
+            <div class="modal-close" id="close-attribute-modal"><i class="ph ph-x"></i></div>
+            <div class="modal-header">
+                <div class="modal-title-area">
+                    <h2 id="attribute-modal-title">Add Attribute</h2>
+                    <p class="modal-desc" style="margin-bottom:0;" id="attribute-modal-desc">Define a new property for
+                        this category.</p>
+                </div>
+            </div>
+            <div class="modal-body-scroll">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Property Key (e.g.
+                            weight_g)</label>
+                        <input type="text" id="attr-key-input"
+                            style="background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-main); padding: 12px; border-radius: var(--radius-sm); outline:none; font-size: 15px; font-family: monospace; width: 100%; margin-top: 4px; box-shadow: var(--inset-shadow);">
+                    </div>
+                    <div>
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Default Value
+                            (optional)</label>
+                        <input type="text" id="attr-val-input"
+                            style="background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-main); padding: 12px; border-radius: var(--radius-sm); outline:none; font-size: 15px; font-family: monospace; width: 100%; margin-top: 4px; box-shadow: var(--inset-shadow);"
+                            placeholder="null, true, false, 0, or string">
+                    </div>
+                    <div>
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Options List
+                            (optional, pipe | separated)</label>
+                        <input type="text" id="attr-options-input"
+                            style="background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-main); padding: 12px; border-radius: var(--radius-sm); outline:none; font-size: 15px; font-family: monospace; width: 100%; margin-top: 4px; box-shadow: var(--inset-shadow);"
+                            placeholder="e.g. M2 | M2.5 | M3">
+                    </div>
+                    <div>
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Notes / Description
+                            (optional)</label>
+                        <textarea id="attr-notes-input"
+                            style="background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-main); padding: 12px; border-radius: var(--radius-sm); outline:none; font-size: 14px; width: 100%; margin-top: 4px; resize: vertical; box-shadow: var(--inset-shadow); min-height: 80px;"
+                            placeholder="What does this property do?"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="btn-cancel-attribute">Cancel</button>
+                <button class="btn btn-primary" id="btn-save-attribute">Save Property</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'template.js' %}?v=5"></script>
     <script>
         (function () {
             function applyTheme(dark) {

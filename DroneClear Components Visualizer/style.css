@@ -1300,7 +1300,8 @@ input[type="file"] {
     background-color: var(--bg-panel);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
-    top: 81px; /* sits just below the topbar */
+    top: 81px;
+    /* sits just below the topbar */
     z-index: 4;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
 }
@@ -1513,7 +1514,8 @@ input[type="file"] {
 
 /* list-name-col: in grid view, acts as a transparent passthrough */
 .list-name-col {
-    display: contents; /* children participate in parent flex/block flow normally */
+    display: contents;
+    /* children participate in parent flex/block flow normally */
 }
 
 /* ============================================================
@@ -1533,12 +1535,12 @@ input[type="file"] {
 }
 
 /* When clear-btn is also visible, don't double-push with auto margin */
-.filter-clear-btn ~ .view-toggle,
+.filter-clear-btn~.view-toggle,
 .view-toggle {
     margin-left: auto;
 }
 
-.filter-clear-btn:not(.hidden) ~ .view-toggle {
+.filter-clear-btn:not(.hidden)~.view-toggle {
     margin-left: 0;
 }
 
@@ -1566,6 +1568,111 @@ input[type="file"] {
     background: var(--bg-panel);
     color: var(--accent-red);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================
+   SLIDE TOGGLE SWITCH
+   ============================================================ */
+.theme-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.theme-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.theme-switch .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-surface);
+    transition: .4s;
+    border: 1px solid var(--border-color);
+}
+
+.theme-switch .slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--text-main);
+    transition: .4s;
+}
+
+.theme-switch input:checked+.slider {
+    background-color: var(--accent-red);
+    border-color: var(--accent-red);
+}
+
+.theme-switch input:checked+.slider:before {
+    transform: translateX(20px);
+    background-color: #fff;
+}
+
+.theme-switch .slider.round {
+    border-radius: 24px;
+}
+
+.theme-switch .slider.round:before {
+    border-radius: 50%;
+}
+
+/* ============================================================
+   ALPHABET DIVIDER & TIGHTER SCHEMA LIST
+   ============================================================ */
+.alphabet-divider {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-faint);
+    margin-top: 24px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 2px solid var(--border-color);
+    text-transform: uppercase;
+}
+
+details.schema-category-card {
+    margin-bottom: 4px !important;
+}
+
+details.schema-category-card summary {
+    padding: 10px 16px !important;
+}
+
+/* ============================================================
+   CODEMIRROR OVERRIDES
+   ============================================================ */
+.CodeMirror {
+    height: 33vh;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 24px;
+    font-family: monospace;
+    font-size: 14px;
+    border-radius: var(--radius-md);
+    background: #0f172a !important;
+    /* dark blueish slate */
+    border: 1px solid rgba(59, 130, 246, 0.5) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    resize: vertical;
+    /* <-- Enable manual vertical scaling */
+    overflow-y: auto;
+    /* <-- Required for resize handle to show/work */
+}
+
+.CodeMirror-gutters {
+    background: #0f172a !important;
+    border-right: 1px solid rgba(59, 130, 246, 0.2) !important;
 }
 
 /* ============================================================
@@ -1753,9 +1860,19 @@ input[type="file"] {
 }
 
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    75% { transform: translateX(4px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-4px);
+    }
+
+    75% {
+        transform: translateX(4px);
+    }
 }
 
 .save-build-summary {
@@ -2464,4 +2581,188 @@ input[type="file"] {
     font-size: 12px;
     color: var(--accent-blue);
     word-break: break-all;
+}
+
+/* Master Attributes Visual Editor specific */
+.inline-action-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    opacity: 0;
+    /* Show on hover in parent */
+}
+
+.prop-card:hover .inline-action-btn,
+.schema-group:hover>h4 .inline-action-btn,
+.schema-category-card:hover>summary .inline-action-btn {
+    opacity: 1;
+}
+
+.inline-action-btn:hover {
+    background: var(--bg-panel-hover);
+    color: var(--text-main);
+}
+
+.inline-action-btn.delete-action:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.add-btn {
+    background: rgba(255, 255, 255, 0.05);
+    /* very faint */
+    border: 1px dashed var(--border-color);
+    color: var(--text-muted);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.add-btn:hover {
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+    background: rgba(218, 41, 28, 0.05);
+}
+
+/* ============================================================
+   SAVE ANIMATION
+   ============================================================ */
+@keyframes flash-success {
+    0% {
+        background-color: var(--accent-purple);
+        border-color: transparent;
+    }
+
+    20% {
+        background-color: #10b981;
+        border-color: #059669;
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+    }
+
+    /* Emerald Green */
+    100% {
+        background-color: var(--accent-purple);
+        border-color: transparent;
+    }
+}
+
+.save-success-flash {
+    animation: flash-success 1.5s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
+/* ============================================================
+   RESPONSIVE DESIGN (Media Queries)
+   ============================================================ */
+@media (max-width: 900px) {
+
+    /* Sidebar becomes an off-canvas slide menu */
+    .sidebar {
+        position: fixed;
+        left: -100%;
+        /* Hidden off-screen by default */
+        top: 0;
+        height: 100vh;
+        width: 300px;
+        /* Slightly narrower on mobile */
+        z-index: 1000;
+        transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar.open {
+        left: 0;
+    }
+
+    /* Sidebar Overlay Backdrop */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* Display Hamburger toggle in Topbar */
+    .mobile-nav-toggle {
+        display: inline-flex !important;
+        padding-right: 8px;
+        /* buffer from title */
+    }
+
+    /* Topbar flexible wrapping */
+    .topbar {
+        padding: 20px 24px;
+        flex-wrap: wrap;
+        /* The container inner div already has flex-direction row */
+    }
+
+    .topbar>div:first-child {
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        /* Title shrinks a bit */
+    }
+
+    /* Force Search Bar down to its own full-width row */
+    .search-bar {
+        width: 100%;
+        order: 3;
+        margin-top: 8px;
+        /* space between it and the toggles */
+    }
+
+    /* Make Content Padding smaller */
+    .content-body {
+        padding: 24px 20px;
+    }
+
+    /* Component Grid: Fallback minimum width reduction so it fits on tiny phones */
+    .components-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+    }
+
+    /* Modal adjustments */
+    .glass-panel {
+        width: 95%;
+        padding: 24px;
+    }
+
+    .view-toggle-container {
+        transform: scale(0.9);
+    }
 }
