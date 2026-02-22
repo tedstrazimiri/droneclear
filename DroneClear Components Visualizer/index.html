@@ -26,36 +26,44 @@
         <aside class="sidebar">
             <div class="sidebar-header" style="position: relative;">
                 <div class="logo">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/cf/Flag_of_Canada.svg"
-                        alt="Canadian Flag"
-                        style="width: 28px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <span data-i18n="appTitle">DroneClear Configurator</span>
+                    <span class="logo-text" data-i18n="appTitle">DroneClear Configurator</span>
                 </div>
 
-                <!-- Version & Settings (Moved from hovering footer) -->
-                <div
-                    style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 8px 12px; background: var(--bg-dark); border-radius: var(--radius-sm); border: 1px solid var(--border-color); box-shadow: var(--inset-shadow);">
-                    <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">v1.0.0 | Build 26 | <span
-                            id="total-parts-count">0 Parts</span></span>
-                    <div class="lang-toggle"
-                        style="display: flex; gap: 4px; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 4px;">
-                        <button id="btn-lang-en" class="btn"
-                            style="padding: 2px 6px; font-size: 10px; border: none; background: white; color: var(--accent-red); box-shadow: var(--card-shadow);">EN</button>
-                        <button id="btn-lang-fr" class="btn"
-                            style="padding: 2px 6px; font-size: 10px; border: none; background: transparent; color: var(--text-muted);">FR</button>
+                <!-- System Meta Drawer -->
+                <details class="system-meta-drawer">
+                    <summary>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span class="status-indicator"></span>
+                            <span>v1.0.0 | Build 26</span>
+                        </div>
+                        <i class="ph ph-caret-down"></i>
+                    </summary>
+                    <div class="meta-actions-grid">
+                        <p id="total-parts-count">0 Parts Loaded</p>
+
+                        <!-- Lang Toggle -->
+                        <div class="lang-toggle"
+                            style="display: flex; gap: 4px; background: rgba(0,0,0,0.2); padding: 2px; border-radius: 4px; grid-column: 1 / -1; margin-bottom: 8px;">
+                            <button id="btn-lang-en" class="btn"
+                                style="padding: 2px 6px; font-size: 10px; border: none; background: var(--bg-panel); color: var(--accent-red); box-shadow: var(--card-shadow); flex: 1;">EN</button>
+                            <button id="btn-lang-fr" class="btn"
+                                style="padding: 2px 6px; font-size: 10px; border: none; background: transparent; color: var(--text-muted); flex: 1;">FR</button>
+                        </div>
+
+                        <button class="btn btn-outline" id="btn-restart-server"
+                            style="padding: 6px; font-size: 11px; justify-content: center;">
+                            <i class="ph ph-arrows-clockwise"></i> Restart
+                        </button>
+                        <button class="btn btn-outline" id="btn-report-bug"
+                            style="padding: 6px; font-size: 11px; justify-content: center; color: var(--accent-red); border-color: rgba(218, 41, 28, 0.3);">
+                            <i class="ph ph-bug"></i> Report Bug
+                        </button>
                     </div>
-                </div>
+                </details>
 
                 <!-- Navigation Menu -->
                 <div
-                    style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                        <p class="nav-subtitle">3. MODEL BUILDER</p>
-                        <button id="btn-global-help" class="btn btn-outline"
-                            style="padding: 4px 8px; font-size: 16px; border:none; border-radius:50%; margin-bottom: 8px; margin-right: -8px;"
-                            title="Help & Overview"><i class="ph ph-question"></i></button>
-                    </div>
-
+                    style="border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; padding-top: 16px;">
                     <a href="/template/" class="btn btn-menu">
                         <i class="ph ph-tree-structure"></i> Master Attributes
                     </a>
@@ -481,6 +489,111 @@
 
 
 
+    <!-- Bug Report Modal Structure -->
+    <div id="bug-report-modal" class="modal-overlay hidden" style="z-index: 9999;">
+        <div class="modal-content" style="max-width: 500px; padding: 24px; position: relative;">
+            <div class="modal-title-area" style="margin-bottom: 16px;">
+                <h2 style="font-size: 20px; color: var(--text-main); display:flex; align-items:center; gap:8px;">
+                    <i class="ph ph-bug" style="color: var(--accent-red);"></i> Submit Bug Report
+                </h2>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">Found an issue? Let us know.</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <input type="text" id="bug-title-input" placeholder="Brief issue description..."
+                    style="width:100%; padding:10px; background:var(--bg-dark); border:1px solid var(--border-color); color:var(--text-main); border-radius:var(--radius-sm);">
+                <textarea id="bug-desc-input" rows="4" placeholder="Steps to reproduce..."
+                    style="width:100%; padding:10px; background:var(--bg-dark); border:1px solid var(--border-color); color:var(--text-main); border-radius:var(--radius-sm); resize:vertical;"></textarea>
+            </div>
+            <div class="modal-footer" style="margin-top:20px; display:flex; gap:12px; justify-content:flex-end;">
+                <button class="btn btn-outline" id="btn-cancel-bug">Cancel</button>
+                <button class="btn btn-primary" id="btn-submit-bug">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Maintenance Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnRestart = document.getElementById('btn-restart-server');
+            const btnReport = document.getElementById('btn-report-bug');
+            const bugModal = document.getElementById('bug-report-modal');
+            const btnCancelBug = document.getElementById('btn-cancel-bug');
+            const btnSubmitBug = document.getElementById('btn-submit-bug');
+            const titleInput = document.getElementById('bug-title-input');
+            const descInput = document.getElementById('bug-desc-input');
+
+            if (btnRestart) {
+                btnRestart.addEventListener('click', async () => {
+                    const originalText = btnRestart.innerHTML;
+                    btnRestart.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Restarting...';
+                    try {
+                        const res = await fetch('/api/maintenance/restart/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        if (res.ok) {
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            alert('Failed to restart server.');
+                            btnRestart.innerHTML = originalText;
+                        }
+                    } catch (e) {
+                        alert('Error connecting to backend.');
+                        btnRestart.innerHTML = originalText;
+                    }
+                });
+            }
+
+            if (btnReport && bugModal) {
+                btnReport.addEventListener('click', () => {
+                    bugModal.classList.remove('hidden');
+                    titleInput.value = '';
+                    descInput.value = '';
+                    titleInput.focus();
+                });
+            }
+
+            if (btnCancelBug && bugModal) {
+                btnCancelBug.addEventListener('click', () => {
+                    bugModal.classList.add('hidden');
+                });
+            }
+
+            if (btnSubmitBug) {
+                btnSubmitBug.addEventListener('click', async () => {
+                    if (!titleInput.value.trim()) {
+                        alert("Please enter a brief description.");
+                        return;
+                    }
+                    const originalText = btnSubmitBug.innerHTML;
+                    btnSubmitBug.innerHTML = 'Submitting...';
+                    btnSubmitBug.disabled = true;
+
+                    try {
+                        const res = await fetch('/api/maintenance/bug-report/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                title: titleInput.value.trim(),
+                                description: descInput.value.trim()
+                            })
+                        });
+                        if (res.ok) {
+                            bugModal.classList.add('hidden');
+                            alert("Bug report submitted successfully.");
+                        } else {
+                            alert('Failed to submit bug report.');
+                        }
+                    } catch (e) {
+                        alert('Error connecting to backend.');
+                    } finally {
+                        btnSubmitBug.innerHTML = originalText;
+                        btnSubmitBug.disabled = false;
+                    }
+                });
+            }
+        });
+    </script>
     <script src="{% static 'state.js' %}?v=2"></script>
     <script src="{% static 'utils.js' %}?v=2"></script>
     <script src="{% static 'filters.js' %}?v=2"></script>

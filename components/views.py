@@ -66,3 +66,46 @@ class SchemaView(APIView):
                 return Response({"message": "Schema updated successfully."})
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+import datetime
+class RestartServerView(APIView):
+    """
+    Touches wsgi.py to force a runserver restart.
+    """
+    def post(self, request):
+        try:
+            wsgi_path = os.path.join(settings.BASE_DIR, 'droneclear_backend', 'wsgi.py')
+            if os.path.exists(wsgi_path):
+                os.utime(wsgi_path, None)
+                return Response({"status": "Restarting server..."}, status=status.HTTP_200_OK)
+            return Response({"error": "wsgi.py not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class BugReportView(APIView):
+    """
+    Saves a bug report to the bug_reports directory.
+    """
+    def post(self, request):
+        try:
+            title = request.data.get('title', 'Untitled Bug')
+            description = request.data.get('description', '')
+            logs = request.data.get('logs', '')
+            
+            reports_dir = os.path.join(settings.BASE_DIR, 'bug_reports')
+            os.makedirs(reports_dir, exist_ok=True)
+            
+            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"bug_{timestamp}.txt"
+            filepath = os.path.join(reports_dir, filename)
+            
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(f"Title: {title}\n")
+                f.write(f"Time: {timestamp}\n")
+                f.write(f"Description:\n{description}\n\n")
+                if logs:
+                    f.write(f"Logs:\n{logs}\n")
+                    
+            return Response({"status": "Bug report saved", "file": filename}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

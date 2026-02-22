@@ -62,6 +62,9 @@ We have recently completed "Tier 1 + Tier 2" UI regressions and bug fixes. The a
 
 ## UI Standards
 
+#### Sidebar Navigation Standard
+The application sidebar MUST use standard classes defined in `layout.css`. Specifically, the Logo area must use the gradient `.logo-text` class to avoid relying on standard images. System versioning and settings must be contained within an interactive `<details class="system-meta-drawer">` accordion to conserve space and house nested maintenance buttons (Restart, Bug Report).
+
 #### Topbar Navigation Standard
 To maintain visual consistency, all core pages MUST use the following flexbox structural standard for the <header class="topbar">. The mobile toggle and page title reside on the left, while tools and toggles reside on the right.
 
