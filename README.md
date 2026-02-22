@@ -11,21 +11,6 @@ The DroneClear Configurator is a robust internal tool built to manage, visualize
 
 2. **Parts Library Editor (`editor.html`)**
    - Populate the live database (`drone_database_exported_v2.json`) with actual drone components based on the Master Schema.
-   - Includes real-time validation, JSON export/import, and dynamic form generation.
-
-3. **Model Builder (`index.html`)**
-   - A guided, responsive interface for piecing together a virtual drone build.
-   - Features a 9-step "Build Wizard" that walks the user through selecting a Frame, Flight Controller, ESCs, Motors, etc.
-   - Calculates estimated weight and total cost dynamically.
-   - Visual "In Build" badges and persistent drawer summarizing the current configuration.
-
-## 🛠️ Tech Stack & Architecture
-
-### Frontend (Vanilla JS + CSS)
-The frontend relies entirely on standard ES Modules and Vanilla CSS, meaning no complex build tools (Webpack/Vite) or heavy frameworks (React/Vue) are required. 
-
-- **Structure**: Located in `DroneClear Components Visualizer/`.
-- **Styling**: `style.css` contains a unified design system using custom properties (`var(--accent-red)`, `var(--bg-dark)`) and a responsive CSS Grid architecture.
 - **JavaScript Modules**:
   - `app.js` / `script.js` - Core initialization.
   - `components.js` - Fetches and renders the component data.

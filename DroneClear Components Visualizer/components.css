@@ -234,30 +234,49 @@
 .modal-title-area h2 {
     font-size: 28px;
     font-weight: 700;
-    margin-bottom: 4px;
-}
-
-.modal-manufacturer {
-    font-size: 16px;
-    color: var(--accent-red);
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-
-.modal-pid {
-    font-size: 14px;
-    font-family: monospace;
-    color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.05);
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: inline-block;
     margin-bottom: 12px;
 }
 
-.modal-desc {
-    font-size: 16px;
+.modal-info-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 8px;
+}
+
+.modal-info-slot .slot-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 700;
     color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+.modal-info-slot .slot-value {
+    font-size: 14px;
+    color: var(--text-main);
+    word-break: break-word;
+    /* Prevents long descriptions/PIDs from overflowing */
+}
+
+.modal-manufacturer {
+    color: var(--accent-red);
+    font-weight: 600;
+}
+
+.modal-pid {
+    font-family: monospace;
+    font-size: 13px;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    align-self: flex-start;
+}
+
+.modal-desc {
+    line-height: 1.5;
+    color: var(--text-muted);
+    margin: 0;
     margin-bottom: 16px;
 }
 
@@ -274,13 +293,26 @@
 }
 
 .modal-body-scroll h3 {
-    font-size: 21px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     margin-bottom: 16px;
     color: var(--text-main);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+}
+
+.tooltip-icon {
+    font-size: 16px;
+    color: var(--text-muted);
+    cursor: help;
+    transition: color 0.2s ease;
+}
+
+.tooltip-icon:hover {
+    color: var(--accent-blue);
 }
 
 .modal-body-scroll h3::before {
@@ -917,8 +949,15 @@
 }
 
 @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ============================================================
@@ -2043,9 +2082,10 @@ details.form-collapsible {
     grid-column: 1 / -1;
 }
 
-details.form-collapsible > summary.form-section-title {
+details.form-collapsible>summary.form-section-title {
     cursor: pointer;
-    list-style: none; /* hide default triangle */
+    list-style: none;
+    /* hide default triangle */
     user-select: none;
     display: flex;
     align-items: center;
@@ -2054,7 +2094,7 @@ details.form-collapsible > summary.form-section-title {
     margin-bottom: 0;
 }
 
-details.form-collapsible > summary.form-section-title::before {
+details.form-collapsible>summary.form-section-title::before {
     content: '';
     display: inline-block;
     width: 0;
@@ -2066,16 +2106,16 @@ details.form-collapsible > summary.form-section-title::before {
     flex-shrink: 0;
 }
 
-details.form-collapsible[open] > summary.form-section-title::before {
+details.form-collapsible[open]>summary.form-section-title::before {
     transform: rotate(90deg);
     border-left-color: var(--accent-red);
 }
 
-details.form-collapsible[open] > summary.form-section-title {
+details.form-collapsible[open]>summary.form-section-title {
     color: var(--text-main);
 }
 
-details.form-collapsible > summary::-webkit-details-marker {
+details.form-collapsible>summary::-webkit-details-marker {
     display: none;
 }
 

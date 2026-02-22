@@ -189,9 +189,22 @@
                 </div>
                 <div class="modal-title-area">
                     <h2 id="modal-title">Component Name</h2>
-                    <p class="modal-manufacturer" id="modal-manufacturer">Manufacturer</p>
-                    <span class="modal-pid" id="modal-pid">PID-0000</span>
-                    <p class="modal-desc" id="modal-description">Description goes here.</p>
+
+                    <div class="modal-info-slot">
+                        <span class="slot-label">Manufacturer</span>
+                        <span class="slot-value modal-manufacturer" id="modal-manufacturer">Unknown</span>
+                    </div>
+
+                    <div class="modal-info-slot">
+                        <span class="slot-label">PID</span>
+                        <span class="slot-value modal-pid" id="modal-pid">N/A</span>
+                    </div>
+
+                    <div class="modal-info-slot" style="margin-bottom: 16px;">
+                        <span class="slot-label">Description</span>
+                        <p class="slot-value modal-desc" id="modal-description">Description goes here.</p>
+                    </div>
+
                     <div class="modal-tags" id="modal-tags">
                         <!-- Tags injected by JS -->
                     </div>
@@ -199,27 +212,44 @@
             </div>
 
             <div class="modal-body-scroll">
-                <h3>Technical Specifications</h3>
+                <h3>
+                    Technical Specifications
+                    <i class="ph ph-info tooltip-icon"
+                        title="Generated from the component's underlying key-value pairs."></i>
+                </h3>
                 <div class="specs-grid" id="modal-specs">
                     <!-- Specs injected by JS -->
                 </div>
 
                 <div class="compatibility-section hidden" id="modal-compat-section">
-                    <h3>Compatibility Constraints</h3>
+                    <h3>
+                        Compatibility Constraints
+                        <i class="ph ph-info tooltip-icon"
+                            title="Physical or dimensional limits enforced by the build engine."></i>
+                    </h3>
                     <div class="compat-grid" id="modal-compat">
                         <!-- Compatibility rules injected by JS -->
                     </div>
                 </div>
 
                 <div class="notes-section hidden" id="modal-notes-section">
-                    <h3>Schema Notes</h3>
+                    <h3>
+                        Schema Notes
+                        <i class="ph ph-info tooltip-icon"
+                            title="Internal notes and metadata starting with an underscore."></i>
+                    </h3>
                     <div class="notes-list" id="modal-notes">
                         <!-- Notes injected by JS -->
                     </div>
                 </div>
 
                 <div class="similar-options-section hidden" id="modal-similar-section">
-                    <h3><i class="ph ph-magic-wand"></i> Similar Alternatives</h3>
+                    <h3>
+                        <div style="display:flex; align-items:center; gap:6px;"><i class="ph ph-magic-wand"></i> Similar
+                            Alternatives</div>
+                        <i class="ph ph-info tooltip-icon"
+                            title="Alternative components with matching categorical properties."></i>
+                    </h3>
                     <div class="similar-grid" id="modal-similar-grid">
                         <!-- Similar items injected by JS -->
                     </div>
@@ -227,15 +257,16 @@
             </div>
 
             <div class="modal-footer" id="modal-footer-actions">
-                <button class="btn btn-primary" id="modal-add-btn">
-                    <i class="ph ph-plus-circle"></i>
-                    <span data-i18n="btnAddBuild">Add to Build</span>
-                </button>
                 <a href="#" class="btn btn-outline" id="modal-edit-btn"
                     style="border-color: var(--accent-blue); color: var(--accent-blue);">
                     <i class="ph ph-pencil-simple"></i>
                     <span data-i18n="btnEditPart">Edit Component</span>
                 </a>
+                <button class="btn btn-primary" id="modal-add-btn"
+                    style="flex-grow: 1; padding: 12px 32px; font-size: 15px; justify-content: center;">
+                    <i class="ph ph-plus-circle"></i>
+                    <span data-i18n="btnAddBuild">Add to Build</span>
+                </button>
             </div>
         </div>
     </div>
