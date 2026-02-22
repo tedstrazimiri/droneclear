@@ -139,10 +139,24 @@
                                 title="Add New Category">
                                 <i class="ph ph-plus"></i> Category
                             </button>
-                            <button class="btn btn-outline" id="btn-export-json"
-                                style="padding: 6px 14px; font-size: 13px;" title="Export JSON">
-                                <i class="ph ph-export"></i> Export
+                            <button class="btn btn-outline" id="btn-schema-format"
+                                style="padding: 6px 14px; font-size: 13px;" title="Schema Format Reference">
+                                <i class="ph ph-info"></i> Format
                             </button>
+                            <div style="position: relative; display: inline-block;" id="export-dropdown-wrapper">
+                                <button class="btn btn-outline" id="btn-export-json"
+                                    style="padding: 6px 14px; font-size: 13px;" title="Export JSON">
+                                    <i class="ph ph-export"></i> Export <i class="ph ph-caret-down" style="font-size:10px;margin-left:2px;"></i>
+                                </button>
+                                <div id="export-dropdown-menu" class="hidden" style="position:absolute; top:100%; right:0; margin-top:4px; background:var(--bg-panel); border:1px solid var(--border-color); border-radius:var(--radius-sm); box-shadow:var(--card-shadow); z-index:100; min-width:180px;">
+                                    <button class="btn" id="btn-export-full" style="width:100%; text-align:left; padding:10px 14px; font-size:13px; border:none; border-radius:0; background:transparent; color:var(--text-main); cursor:pointer;">
+                                        <i class="ph ph-file-arrow-down"></i> Full Schema
+                                    </button>
+                                    <button class="btn" id="btn-export-clean" style="width:100%; text-align:left; padding:10px 14px; font-size:13px; border:none; border-radius:0; background:transparent; color:var(--text-main); cursor:pointer; border-top:1px solid var(--border-color);">
+                                        <i class="ph ph-broom"></i> Clean Template
+                                    </button>
+                                </div>
+                            </div>
                             <button class="btn btn-primary" id="btn-save-schema"
                                 style="padding: 6px 14px; font-size: 13px;" title="Save Master Template">
                                 <i class="ph ph-floppy-disk"></i> Save
@@ -253,6 +267,62 @@
             <div class="modal-footer">
                 <button class="btn btn-outline" id="btn-cancel-attribute">Cancel</button>
                 <button class="btn btn-primary" id="btn-save-attribute">Save Property</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schema Format Reference Modal -->
+    <div id="schema-format-modal" class="modal-overlay hidden">
+        <div class="glass-panel" style="max-width: 700px;">
+            <div class="modal-close" id="close-schema-format-modal"><i class="ph ph-x"></i></div>
+            <div class="modal-header">
+                <div class="modal-title-area">
+                    <h2>Schema Format Reference</h2>
+                    <p class="modal-desc" style="margin-bottom:0;">JSON key conventions used in the master schema.</p>
+                </div>
+            </div>
+            <div class="modal-body-scroll" style="max-height: 60vh; overflow-y: auto; padding: 16px;">
+                <div style="font-family: monospace; font-size: 13px; line-height: 1.8; color: var(--text-main);">
+                    <p style="margin-bottom: 12px; color: var(--text-muted); font-family: inherit; font-size: 13px;">Each component category is an array with one golden example entry. Fields use sidecar metadata keys:</p>
+                    <table style="width:100%; border-collapse: collapse; font-size: 12px;">
+                        <thead><tr style="border-bottom: 2px solid var(--border-color);">
+                            <th style="text-align:left; padding:8px; color:var(--accent-cyan);">Key Pattern</th>
+                            <th style="text-align:left; padding:8px; color:var(--accent-cyan);">Purpose</th>
+                            <th style="text-align:left; padding:8px; color:var(--accent-cyan);">Example</th>
+                        </tr></thead>
+                        <tbody>
+                            <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;"><code>field_name</code></td><td style="padding:8px;">Data field with example value</td><td style="padding:8px;"><code>"weight_g": 145</code></td></tr>
+                            <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;"><code>_field_options</code></td><td style="padding:8px;">Pipe-delimited enum list</td><td style="padding:8px;"><code>"quad | hex | octo"</code></td></tr>
+                            <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;"><code>_field_notes</code></td><td style="padding:8px;">Human-readable notes</td><td style="padding:8px;">Free text</td></tr>
+                            <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;"><code>compatibility</code></td><td style="padding:8px;">Object of cross-ref constraints</td><td style="padding:8px;">Fields the engine reads</td></tr>
+                            <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;"><code>_compat_hard</code></td><td style="padding:8px;">Hard constraints (ERROR)</td><td style="padding:8px;"><code>["mounting_pattern_mm"]</code></td></tr>
+                            <tr><td style="padding:8px;"><code>_compat_soft</code></td><td style="padding:8px;">Soft constraints (WARNING)</td><td style="padding:8px;"><code>["cell_count_min"]</code></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="btn-close-schema-format">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Validation Modal -->
+    <div id="import-validation-modal" class="modal-overlay hidden">
+        <div class="glass-panel" style="max-width: 600px;">
+            <div class="modal-close" id="close-import-validation-modal"><i class="ph ph-x"></i></div>
+            <div class="modal-header">
+                <div class="modal-title-area">
+                    <h2>Import Schema Preview</h2>
+                    <p class="modal-desc" style="margin-bottom:0;">Review before applying.</p>
+                </div>
+            </div>
+            <div class="modal-body-scroll" style="max-height: 50vh; overflow-y: auto; padding: 16px;">
+                <div id="import-validation-content" style="font-size: 13px; color: var(--text-main);"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="btn-cancel-import">Cancel</button>
+                <button class="btn btn-primary" id="btn-apply-import">Apply Import</button>
             </div>
         </div>
     </div>

@@ -644,3 +644,316 @@ elements.btnDroneDeleteConfirm?.addEventListener('click', async () => {
         elements.btnDroneDeleteConfirm.disabled = false;
     }
 });
+
+// =============================================================
+// Import / Export Parts
+// =============================================================
+
+const importExportElements = {
+    btnImport: document.getElementById('btn-import-parts'),
+    exportWrapper: document.getElementById('export-dropdown-wrapper'),
+    btnExport: document.getElementById('btn-export-parts'),
+    exportMenu: document.getElementById('export-dropdown-menu'),
+    btnExportCategory: document.getElementById('btn-export-category'),
+    btnExportAll: document.getElementById('btn-export-all'),
+    importModal: document.getElementById('import-parts-modal'),
+    importModalClose: document.getElementById('import-modal-close'),
+    importDropzone: document.getElementById('import-dropzone'),
+    importFileInput: document.getElementById('import-file-input'),
+    importPreview: document.getElementById('import-preview'),
+    importPreviewContent: document.getElementById('import-preview-content'),
+    importCancelBtn: document.getElementById('import-cancel-btn'),
+    importApplyBtn: document.getElementById('import-apply-btn'),
+    formatContent: document.getElementById('import-format-content'),
+    llmGuideContent: document.getElementById('llm-guide-content'),
+    btnCopyLlmGuide: document.getElementById('btn-copy-llm-guide'),
+};
+
+let pendingImportParts = null;
+
+// Show/hide import + export buttons when a category is selected
+function showImportExportButtons() {
+    if (currentCategory && currentCategory !== '__DRONE_MODELS__') {
+        importExportElements.btnImport?.classList.remove('hidden');
+        importExportElements.exportWrapper?.classList.remove('hidden');
+    } else {
+        importExportElements.btnImport?.classList.add('hidden');
+        importExportElements.exportWrapper?.classList.add('hidden');
+    }
+}
+
+// Patch loadCategory and loadDroneModels to toggle buttons
+const _origLoadCategory = loadCategory;
+loadCategory = async function(slug, name) {
+    await _origLoadCategory(slug, name);
+    showImportExportButtons();
+};
+
+const _origLoadDroneModels = loadDroneModels;
+loadDroneModels = async function() {
+    await _origLoadDroneModels();
+    showImportExportButtons();
+};
+
+// --- Export dropdown toggle ---
+importExportElements.btnExport?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    importExportElements.exportMenu?.classList.toggle('hidden');
+});
+
+document.addEventListener('click', () => {
+    importExportElements.exportMenu?.classList.add('hidden');
+});
+
+function downloadJson(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+importExportElements.btnExportCategory?.addEventListener('click', async () => {
+    importExportElements.exportMenu?.classList.add('hidden');
+    if (!currentCategory || currentCategory === '__DRONE_MODELS__') {
+        showToast('Select a parts category first.', 'warning');
+        return;
+    }
+    try {
+        const res = await fetch(`/api/export/parts/?category=${currentCategory}`);
+        if (!res.ok) throw new Error('Export failed');
+        const parts = await res.json();
+        downloadJson(parts, `${currentCategory}_export.json`);
+        showToast(`Exported ${parts.length} parts from ${currentCategory}.`, 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Export failed.', 'error');
+    }
+});
+
+importExportElements.btnExportAll?.addEventListener('click', async () => {
+    importExportElements.exportMenu?.classList.add('hidden');
+    try {
+        const res = await fetch('/api/export/parts/');
+        if (!res.ok) throw new Error('Export failed');
+        const parts = await res.json();
+        downloadJson(parts, 'all_parts_export.json');
+        showToast(`Exported ${parts.length} parts.`, 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Export failed.', 'error');
+    }
+});
+
+// --- Import modal ---
+importExportElements.btnImport?.addEventListener('click', () => {
+    openImportModal();
+});
+
+function openImportModal() {
+    pendingImportParts = null;
+    importExportElements.importPreview?.classList.add('hidden');
+    importExportElements.importFileInput.value = '';
+    importExportElements.importModal?.classList.remove('hidden');
+    // Switch to upload tab
+    switchImportTab('upload');
+    // Load format template and LLM guide on first open
+    loadFormatTemplate();
+    loadLlmGuide();
+}
+
+function closeImportModal() {
+    importExportElements.importModal?.classList.add('hidden');
+    pendingImportParts = null;
+}
+
+importExportElements.importModalClose?.addEventListener('click', closeImportModal);
+importExportElements.importModal?.addEventListener('click', (e) => {
+    if (e.target === importExportElements.importModal) closeImportModal();
+});
+
+// Tab switching
+document.querySelectorAll('.import-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchImportTab(btn.dataset.tab));
+});
+
+function switchImportTab(tabName) {
+    document.querySelectorAll('.import-tab-btn').forEach(btn => {
+        const isActive = btn.dataset.tab === tabName;
+        btn.classList.toggle('active', isActive);
+        btn.style.borderBottomColor = isActive ? 'var(--accent-blue)' : 'transparent';
+        btn.style.color = isActive ? 'var(--text-main)' : 'var(--text-muted)';
+        btn.style.fontWeight = isActive ? '600' : '400';
+    });
+    document.querySelectorAll('.import-tab-panel').forEach(panel => {
+        panel.classList.add('hidden');
+    });
+    const activePanel = document.getElementById(`import-tab-${tabName}`);
+    activePanel?.classList.remove('hidden');
+}
+
+// Drag-and-drop + file picker
+importExportElements.importDropzone?.addEventListener('click', () => {
+    importExportElements.importFileInput?.click();
+});
+
+importExportElements.importDropzone?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    importExportElements.importDropzone.style.borderColor = 'var(--accent-blue)';
+});
+
+importExportElements.importDropzone?.addEventListener('dragleave', () => {
+    importExportElements.importDropzone.style.borderColor = 'var(--border-color)';
+});
+
+importExportElements.importDropzone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    importExportElements.importDropzone.style.borderColor = 'var(--border-color)';
+    const file = e.dataTransfer.files[0];
+    if (file) handleImportFile(file);
+});
+
+importExportElements.importFileInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) handleImportFile(file);
+});
+
+function handleImportFile(file) {
+    if (!file.name.endsWith('.json')) {
+        showToast('Please select a .json file.', 'warning');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!Array.isArray(data)) {
+                showToast('Import file must contain a JSON array of parts.', 'error');
+                return;
+            }
+            pendingImportParts = data;
+            showImportPreview(data);
+        } catch (err) {
+            showToast('Invalid JSON file.', 'error');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function showImportPreview(parts) {
+    // Group by category
+    const byCat = {};
+    let missingFields = 0;
+    parts.forEach(p => {
+        const cat = p.category || 'unknown';
+        if (!byCat[cat]) byCat[cat] = 0;
+        byCat[cat]++;
+        if (!p.pid || !p.category || !p.name) missingFields++;
+    });
+
+    let html = `<p><strong>${parts.length}</strong> parts found across <strong>${Object.keys(byCat).length}</strong> categories:</p>`;
+    html += '<ul style="margin:8px 0; padding-left:20px;">';
+    for (const [cat, count] of Object.entries(byCat).sort()) {
+        html += `<li style="margin:4px 0;"><code class="inline-code">${cat}</code> — ${count} part${count > 1 ? 's' : ''}</li>`;
+    }
+    html += '</ul>';
+
+    if (missingFields > 0) {
+        html += `<p style="color:var(--negative-red); margin-top:8px;"><i class="ph ph-warning"></i> <strong>${missingFields}</strong> part(s) are missing required fields (pid, category, or name) and will be skipped.</p>`;
+    }
+
+    importExportElements.importPreviewContent.innerHTML = html;
+    importExportElements.importPreview?.classList.remove('hidden');
+}
+
+importExportElements.importCancelBtn?.addEventListener('click', () => {
+    pendingImportParts = null;
+    importExportElements.importPreview?.classList.add('hidden');
+    importExportElements.importFileInput.value = '';
+});
+
+importExportElements.importApplyBtn?.addEventListener('click', async () => {
+    if (!pendingImportParts || pendingImportParts.length === 0) return;
+
+    const btn = importExportElements.importApplyBtn;
+    btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Importing...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/import/parts/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(pendingImportParts)
+        });
+        if (!res.ok) throw new Error('Import request failed');
+
+        const result = await res.json();
+        closeImportModal();
+
+        let msg = `Import complete: ${result.created} created, ${result.updated} updated.`;
+        if (result.errors && result.errors.length > 0) {
+            msg += ` ${result.errors.length} error(s).`;
+            console.warn('Import errors:', result.errors);
+        }
+        showToast(msg, result.errors?.length ? 'warning' : 'success');
+
+        // Refresh current view
+        if (currentCategory && currentCategory !== '__DRONE_MODELS__') {
+            const activeNavName = document.querySelector('.nav-item.active span')?.textContent || currentCategory;
+            await loadCategory(currentCategory, activeNavName);
+        }
+        await fetchCategories();
+
+    } catch (e) {
+        console.error(e);
+        showToast('Import failed.', 'error');
+    } finally {
+        btn.innerHTML = '<i class="ph ph-check"></i> Import Parts';
+        btn.disabled = false;
+    }
+});
+
+// --- Load format template (static file) ---
+let formatLoaded = false;
+async function loadFormatTemplate() {
+    if (formatLoaded) return;
+    try {
+        const res = await fetch('/static/parts_import_template.json');
+        if (!res.ok) throw new Error('Not found');
+        const text = await res.text();
+        importExportElements.formatContent.textContent = text;
+        formatLoaded = true;
+    } catch (e) {
+        importExportElements.formatContent.textContent = 'Failed to load format template.';
+    }
+}
+
+// --- Load LLM guide (static file) ---
+let llmGuideLoaded = false;
+let llmGuideText = '';
+async function loadLlmGuide() {
+    if (llmGuideLoaded) return;
+    try {
+        const res = await fetch('/static/llm_parts_import_guide.md');
+        if (!res.ok) throw new Error('Not found');
+        llmGuideText = await res.text();
+        importExportElements.llmGuideContent.textContent = llmGuideText;
+        llmGuideLoaded = true;
+    } catch (e) {
+        importExportElements.llmGuideContent.textContent = 'Failed to load LLM guide.';
+    }
+}
+
+importExportElements.btnCopyLlmGuide?.addEventListener('click', () => {
+    if (!llmGuideText) {
+        showToast('Guide not loaded yet.', 'warning');
+        return;
+    }
+    navigator.clipboard.writeText(llmGuideText).then(() => {
+        showToast('LLM guide copied to clipboard.', 'success');
+    }).catch(() => {
+        showToast('Failed to copy.', 'error');
+    });
+});

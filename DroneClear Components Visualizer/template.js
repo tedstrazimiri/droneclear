@@ -121,7 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Handle Local File Upload overriding
+    // Handle Local File Upload with validation preview
+    let pendingImportJson = null;
+
     uploadInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -130,16 +132,63 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = (evt) => {
             try {
                 const json = JSON.parse(evt.target.result);
-                currentSchema = json;
-                codeMirrorEditor.setValue(JSON.stringify(json, null, 4));
-                if (currentMode === 'visual') {
-                    renderVisualEditor(json);
-                }
+                pendingImportJson = json;
+                showImportValidation(json);
             } catch (err) {
                 alert("The uploaded file is not valid JSON.");
             }
         };
         reader.readAsText(file);
+        uploadInput.value = ''; // allow re-uploading same file
+    });
+
+    function showImportValidation(json) {
+        const content = document.getElementById('import-validation-content');
+        const version = json.schema_version || 'unknown';
+        const cats = json.components ? Object.keys(json.components) : [];
+        const currentCats = currentSchema.components ? Object.keys(currentSchema.components) : [];
+
+        const newCats = cats.filter(c => !currentCats.includes(c));
+        const missingCats = currentCats.filter(c => !cats.includes(c));
+
+        let html = `<div style="margin-bottom:12px;"><strong>Schema Version:</strong> ${version}</div>`;
+        html += `<div style="margin-bottom:12px;"><strong>Categories:</strong> ${cats.length}</div>`;
+
+        if (newCats.length > 0) {
+            html += `<div style="margin-bottom:8px; color: var(--accent-green, #22c55e);"><strong>New categories:</strong> ${newCats.join(', ')}</div>`;
+        }
+        if (missingCats.length > 0) {
+            html += `<div style="margin-bottom:8px; color: var(--accent-red);"><strong>Missing from import:</strong> ${missingCats.join(', ')}</div>`;
+        }
+
+        html += `<div style="margin-top:12px; max-height:200px; overflow-y:auto;">`;
+        cats.forEach(cat => {
+            const items = json.components[cat];
+            const fieldCount = items && items[0] ? Object.keys(items[0]).filter(k => !k.startsWith('_')).length : 0;
+            html += `<div style="padding:4px 0; border-bottom:1px solid var(--border-color); font-size:12px;"><code>${cat}</code> — ${fieldCount} fields, ${items ? items.length : 0} example(s)</div>`;
+        });
+        html += `</div>`;
+
+        content.innerHTML = html;
+        document.getElementById('import-validation-modal').classList.remove('hidden');
+    }
+
+    document.getElementById('btn-apply-import')?.addEventListener('click', () => {
+        if (pendingImportJson) {
+            currentSchema = pendingImportJson;
+            codeMirrorEditor.setValue(JSON.stringify(pendingImportJson, null, 4));
+            if (currentMode === 'visual') renderVisualEditor(pendingImportJson);
+            pendingImportJson = null;
+        }
+        document.getElementById('import-validation-modal').classList.add('hidden');
+    });
+    document.getElementById('btn-cancel-import')?.addEventListener('click', () => {
+        pendingImportJson = null;
+        document.getElementById('import-validation-modal').classList.add('hidden');
+    });
+    document.getElementById('close-import-validation-modal')?.addEventListener('click', () => {
+        pendingImportJson = null;
+        document.getElementById('import-validation-modal').classList.add('hidden');
     });
 
     // --- MOBILE SIDEBAR ---
@@ -215,23 +264,77 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Export JSON
+    // Export dropdown toggle
     const btnExportJson = document.getElementById('btn-export-json');
-    if (btnExportJson) {
-        btnExportJson.addEventListener('click', () => {
-            if (currentMode === 'visual') syncVisualToJson();
-            let parsed;
-            try { parsed = JSON.parse(codeMirrorEditor.getValue()); } catch (e) { alert("Invalid JSON format."); return; }
-
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(parsed, null, 4));
-            const dlAnchorElem = document.createElement('a');
-            dlAnchorElem.setAttribute("href", dataStr);
-            dlAnchorElem.setAttribute("download", "drone_parts_schema_v2_export.json");
-            document.body.appendChild(dlAnchorElem);
-            dlAnchorElem.click();
-            dlAnchorElem.remove();
+    const exportMenu = document.getElementById('export-dropdown-menu');
+    if (btnExportJson && exportMenu) {
+        btnExportJson.addEventListener('click', (e) => {
+            e.stopPropagation();
+            exportMenu.classList.toggle('hidden');
         });
+        document.addEventListener('click', () => exportMenu.classList.add('hidden'));
     }
+
+    function downloadJson(data, filename) {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+        const a = document.createElement('a');
+        a.setAttribute("href", dataStr);
+        a.setAttribute("download", filename);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
+    // Export Full Schema
+    document.getElementById('btn-export-full')?.addEventListener('click', () => {
+        if (currentMode === 'visual') syncVisualToJson();
+        let parsed;
+        try { parsed = JSON.parse(codeMirrorEditor.getValue()); } catch (e) { alert("Invalid JSON format."); return; }
+        downloadJson(parsed, 'drone_parts_schema_v3_export.json');
+    });
+
+    // Export Clean Template (strip example values, keep structure + metadata)
+    document.getElementById('btn-export-clean')?.addEventListener('click', () => {
+        if (currentMode === 'visual') syncVisualToJson();
+        let parsed;
+        try { parsed = JSON.parse(codeMirrorEditor.getValue()); } catch (e) { alert("Invalid JSON format."); return; }
+
+        const clean = JSON.parse(JSON.stringify(parsed)); // deep clone
+        if (clean.components) {
+            for (const [cat, items] of Object.entries(clean.components)) {
+                if (!Array.isArray(items) || items.length === 0) continue;
+                const template = items[0];
+                for (const [key, val] of Object.entries(template)) {
+                    if (key.startsWith('_')) continue; // keep metadata
+                    if (key === 'compatibility' || key === 'tags') continue;
+                    if (typeof val === 'string') template[key] = null;
+                    else if (typeof val === 'number') template[key] = null;
+                    else if (typeof val === 'boolean') template[key] = null;
+                    else if (Array.isArray(val)) template[key] = [];
+                    else if (val !== null && typeof val === 'object') {
+                        // Nested object — null out its values too
+                        for (const [nk, nv] of Object.entries(val)) {
+                            if (nk.startsWith('_')) continue;
+                            if (typeof nv === 'string' || typeof nv === 'number' || typeof nv === 'boolean') val[nk] = null;
+                            else if (Array.isArray(nv)) val[nk] = [];
+                        }
+                    }
+                }
+            }
+        }
+        downloadJson(clean, 'drone_parts_schema_v3_clean_template.json');
+    });
+
+    // Schema Format Reference Modal
+    document.getElementById('btn-schema-format')?.addEventListener('click', () => {
+        document.getElementById('schema-format-modal').classList.remove('hidden');
+    });
+    document.getElementById('close-schema-format-modal')?.addEventListener('click', () => {
+        document.getElementById('schema-format-modal').classList.add('hidden');
+    });
+    document.getElementById('btn-close-schema-format')?.addEventListener('click', () => {
+        document.getElementById('schema-format-modal').classList.add('hidden');
+    });
 
     // --- MODAL LOGIC ---
     function closeCatModal() { categoryModal.classList.add('hidden'); }

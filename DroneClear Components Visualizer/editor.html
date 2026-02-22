@@ -110,6 +110,29 @@
                             <i class="ph ph-plus"></i> New Part
                         </button>
 
+                        <button class="btn btn-outline hidden" id="btn-import-parts"
+                            style="padding: 7px 14px; font-size: 13px; white-space: nowrap;">
+                            <i class="ph ph-upload-simple"></i> Import
+                        </button>
+
+                        <div class="export-dropdown-wrapper hidden" id="export-dropdown-wrapper" style="position:relative;">
+                            <button class="btn btn-outline" id="btn-export-parts"
+                                style="padding: 7px 14px; font-size: 13px; white-space: nowrap;">
+                                <i class="ph ph-download-simple"></i> Export <i class="ph ph-caret-down" style="font-size:10px; margin-left:4px;"></i>
+                            </button>
+                            <div class="export-dropdown-menu hidden" id="export-dropdown-menu"
+                                style="position:absolute; top:100%; right:0; margin-top:4px; background:var(--bg-panel); border:1px solid var(--border-color); border-radius:var(--radius-sm); box-shadow:var(--card-shadow); min-width:180px; z-index:100;">
+                                <button class="btn" id="btn-export-category"
+                                    style="width:100%; text-align:left; padding:10px 14px; font-size:13px; border:none; border-radius:0; background:transparent; color:var(--text-main);">
+                                    <i class="ph ph-folder"></i> This Category
+                                </button>
+                                <button class="btn" id="btn-export-all"
+                                    style="width:100%; text-align:left; padding:10px 14px; font-size:13px; border:none; border-radius:0; background:transparent; color:var(--text-main); border-top:1px solid var(--border-color);">
+                                    <i class="ph ph-database"></i> All Parts
+                                </button>
+                            </div>
+                        </div>
+
                         <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
 
                         <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode"
@@ -319,6 +342,83 @@
         <i class="ph ph-plus"></i> Create New
     </button>
 
+    <!-- Parts Import Modal (3 tabs) -->
+    <div id="import-parts-modal" class="modal-overlay hidden" style="z-index: 9998;">
+        <div class="modal-content" style="max-width: 700px; padding: 0; position: relative; max-height: 85vh; display: flex; flex-direction: column;">
+            <div style="padding: 20px 24px 0; flex-shrink: 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <h2 style="font-size: 18px; color: var(--text-main); display:flex; align-items:center; gap:8px;">
+                        <i class="ph ph-upload-simple" style="color: var(--accent-blue);"></i> Import Parts
+                    </h2>
+                    <button class="btn" id="import-modal-close" style="background:none; border:none; font-size:20px; color:var(--text-muted); cursor:pointer; padding:4px;">
+                        <i class="ph ph-x"></i>
+                    </button>
+                </div>
+                <!-- Tab bar -->
+                <div style="display:flex; gap:0; border-bottom:2px solid var(--border-color);">
+                    <button class="btn import-tab-btn active" data-tab="upload"
+                        style="padding:10px 18px; font-size:13px; border:none; border-bottom:2px solid var(--accent-blue); margin-bottom:-2px; background:transparent; color:var(--text-main); font-weight:600; cursor:pointer;">
+                        <i class="ph ph-file-arrow-up"></i> Upload JSON
+                    </button>
+                    <button class="btn import-tab-btn" data-tab="format"
+                        style="padding:10px 18px; font-size:13px; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; background:transparent; color:var(--text-muted); cursor:pointer;">
+                        <i class="ph ph-code"></i> View Format
+                    </button>
+                    <button class="btn import-tab-btn" data-tab="llm-guide"
+                        style="padding:10px 18px; font-size:13px; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; background:transparent; color:var(--text-muted); cursor:pointer;">
+                        <i class="ph ph-robot"></i> LLM Guide
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab panels -->
+            <div style="overflow-y:auto; flex:1; padding:20px 24px;">
+                <!-- Upload tab -->
+                <div class="import-tab-panel" id="import-tab-upload">
+                    <div id="import-dropzone"
+                        style="border:2px dashed var(--border-color); border-radius:var(--radius-sm); padding:40px; text-align:center; cursor:pointer; transition: border-color 0.2s;">
+                        <i class="ph ph-cloud-arrow-up" style="font-size:40px; color:var(--text-muted); display:block; margin-bottom:12px;"></i>
+                        <p style="color:var(--text-main); font-weight:600; margin-bottom:4px;">Drop a JSON file here or click to browse</p>
+                        <p style="color:var(--text-muted); font-size:12px;">Expected format: array of part objects with pid, category, name fields</p>
+                        <input type="file" id="import-file-input" accept=".json" style="display:none;">
+                    </div>
+                    <!-- Pre-import summary (shown after file is loaded) -->
+                    <div id="import-preview" class="hidden" style="margin-top:16px;">
+                        <h3 style="font-size:14px; color:var(--text-main); margin-bottom:12px;"><i class="ph ph-list-checks"></i> Import Preview</h3>
+                        <div id="import-preview-content" style="background:var(--bg-dark); border-radius:var(--radius-sm); padding:16px; font-size:13px; color:var(--text-main);"></div>
+                        <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:16px;">
+                            <button class="btn btn-outline" id="import-cancel-btn">Cancel</button>
+                            <button class="btn btn-primary" id="import-apply-btn">
+                                <i class="ph ph-check"></i> Import Parts
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Format tab -->
+                <div class="import-tab-panel hidden" id="import-tab-format">
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">
+                        The import endpoint expects a JSON array of part objects. Each object must include <code class="inline-code">pid</code>, <code class="inline-code">category</code> (slug), and <code class="inline-code">name</code>. All other fields are optional.
+                    </p>
+                    <pre id="import-format-content" style="background:var(--bg-dark); border-radius:var(--radius-sm); padding:16px; font-size:12px; color:var(--text-main); overflow-x:auto; white-space:pre; max-height:400px; overflow-y:auto; border:1px solid var(--border-color);">Loading format template...</pre>
+                </div>
+
+                <!-- LLM Guide tab -->
+                <div class="import-tab-panel hidden" id="import-tab-llm-guide">
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">
+                        Copy the system prompt below into ChatGPT, Claude, or any LLM to scrape product pages into import-ready JSON.
+                    </p>
+                    <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+                        <button class="btn btn-outline" id="btn-copy-llm-guide" style="padding:6px 12px; font-size:12px;">
+                            <i class="ph ph-copy"></i> Copy to Clipboard
+                        </button>
+                    </div>
+                    <pre id="llm-guide-content" style="background:var(--bg-dark); border-radius:var(--radius-sm); padding:16px; font-size:12px; color:var(--text-main); overflow-x:auto; white-space:pre-wrap; max-height:400px; overflow-y:auto; border:1px solid var(--border-color);">Loading LLM guide...</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bug Report Modal Structure -->
     <div id="bug-report-modal" class="modal-overlay hidden" style="z-index: 9999;">
         <div class="modal-content" style="max-width: 500px; padding: 24px; position: relative;">
@@ -425,7 +525,7 @@
         });
     </script>
     <script src="{% static 'utils.js' %}?v=2"></script>
-    <script src="{% static 'editor.js' %}?v=7"></script>
+    <script src="{% static 'editor.js' %}?v=8"></script>
     <script>
         (function () {
             function applyTheme(dark) {
