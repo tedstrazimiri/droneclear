@@ -561,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- TWO WAY SYNCING ---
     function syncVisualToJson() {
         try {
-            const rawJson = JSON.parse(editor.value);
+            const rawJson = JSON.parse(codeMirrorEditor.getValue());
 
             // Loop over all inputs in the visual editor
             const inputs = visualContainer.querySelectorAll('input[data-path]');
