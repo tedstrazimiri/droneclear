@@ -25,19 +25,17 @@ A lightweight Django application serves the REST API responsible for ingesting, 
 
 - **Structure**: Located in `droneclear_backend/` and the `components/` app.
 - **Database**: `db.sqlite3`
+- **Maintenance Endpoints**: Contains system management tools (e.g. `api/maintenance/restart/`, `/api/maintenance/bug-report/`) to manage the live environment.
 - **Execution**: Can be run locally via `python manage.py runserver`. Supports environment-based configuration for dev/prod.
 
 ## 🚦 Development Roadmap & Known Issues
 
-We have recently completed "Tier 1 + Tier 2" UI regressions and bug fixes. The application layout is currently stable, featuring dark mode, keyboard shortcuts, inline confirmations, and properly anchored floating action buttons.
+We have recently completed "Tier 3" UI regressions and feature additions. The application layout is currently very stable, featuring a True Black Dark Mode, an advanced Sidebar Meta Drawer, inline confirmations, and properly anchored floating action buttons.
 
-**Tier 3 Candidates (Upcoming Fixes/Features):**
-- ~~**Persistence Confirms**: The `persist.js` `deleteBuild()` logic still uses a blocking browser `confirm()` prompt and needs to be migrated to the new inline HTML confirmation bar (similar to the "Clear Build" button).~~
-- ~~**Builder Skip Flow**: Introduce a card-level "Add to Build" button to let power users skip the detailed component modal during the wizard.~~
-- ~~**Weight Filter Validation**: Ensure the inline weight filter inputs enforce minimum > maximum validation logic.~~
-- ~~**Slot Replacement Confirm**: Add a "Replace?" overlay warning when a user attempts to add a component to a build slot that is already filled.~~
-- ~~**Wizard Highlighting**: Wire up the existing visual component highlighting logic to match the current active step in the wizard.~~
-
+**Tier 4 Candidates (Upcoming Fixes/Features):**
+- **Data Export Pipelines**: Improve the flow to quickly export current builds entirely to CSV or PDF from the primary wizard.
+- **Component Cloning**: Add a method to duplicate a schema category or an existing component to speed up data entry.
+- **Advanced 3D Visualization**: Explore integrating WebGL/Three.js views of selected drone components.
 ## 📦 Setup & Installation
 
 1. **Clone the Repository**
