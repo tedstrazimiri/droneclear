@@ -8,17 +8,17 @@ function updateLanguage(lang) {
     els.forEach(el => {
         const key = el.getAttribute('data-i18n');
         const map = {
-            appTitle:        { en: 'Drone Models',                        fr: 'Modèles de Drones' },
-            appSubtitle:     { en: 'Builder & Visualizer',                fr: 'Constructeur et Visualiseur' },
-            navMasterAttr:   { en: 'Master Attributes',                   fr: 'Attributs Principaux' },
-            navLibraryEditor:{ en: 'Parts Library Editor',                fr: 'Éditeur de Bibliothèque' },
-            navBuildWizard:  { en: 'Build Wizard',                        fr: 'Assistant de Montage' },
-            btnUploadJson:   { en: 'Upload Custom JSON',                  fr: 'Importer JSON' },
-            textLoading:     { en: 'Loading Components...',               fr: 'Chargement des composants...' },
-            errLoadTitle:    { en: 'Failed to load',                      fr: 'Échec du chargement' },
-            errLoadDesc:     { en: 'Please make sure the file is in the same directory.', fr: 'Assurez-vous que le fichier est dans le répertoire.' },
-            btnAddBuild:     { en: 'Add to Build',                        fr: 'Ajouter au Montage' },
-            btnEditPart:     { en: 'Edit Component',                      fr: 'Modifier la Pièce' }
+            appTitle: { en: 'Drone Models', fr: 'Modèles de Drones' },
+            appSubtitle: { en: 'Builder & Visualizer', fr: 'Constructeur et Visualiseur' },
+            navMasterAttr: { en: 'Master Attributes', fr: 'Attributs Principaux' },
+            navLibraryEditor: { en: 'Parts Library Editor', fr: 'Éditeur de Bibliothèque' },
+            navBuildWizard: { en: 'Build Wizard', fr: 'Assistant de Montage' },
+            btnUploadJson: { en: 'Upload Custom JSON', fr: 'Importer JSON' },
+            textLoading: { en: 'Loading Components...', fr: 'Chargement des composants...' },
+            errLoadTitle: { en: 'Failed to load', fr: 'Échec du chargement' },
+            errLoadDesc: { en: 'Please make sure the file is in the same directory.', fr: 'Assurez-vous que le fichier est dans le répertoire.' },
+            btnAddBuild: { en: 'Add to Build', fr: 'Ajouter au Montage' },
+            btnEditPart: { en: 'Edit Component', fr: 'Modifier la Pièce' }
         };
         if (map[key]?.[lang]) el.innerText = map[key][lang];
     });
@@ -27,12 +27,12 @@ function updateLanguage(lang) {
     const btnFr = document.getElementById('btn-lang-fr');
     if (btnEn && btnFr) {
         const isEn = lang === 'en';
-        btnEn.style.background    = isEn ? 'white' : 'transparent';
-        btnEn.style.color         = isEn ? 'var(--accent-red)' : 'var(--text-muted)';
-        btnEn.style.boxShadow     = isEn ? 'var(--card-shadow)' : 'none';
-        btnFr.style.background    = isEn ? 'transparent' : 'white';
-        btnFr.style.color         = isEn ? 'var(--text-muted)' : 'var(--accent-red)';
-        btnFr.style.boxShadow     = isEn ? 'none' : 'var(--card-shadow)';
+        btnEn.style.background = isEn ? 'white' : 'transparent';
+        btnEn.style.color = isEn ? 'var(--accent-red)' : 'var(--text-muted)';
+        btnEn.style.boxShadow = isEn ? 'var(--card-shadow)' : 'none';
+        btnFr.style.background = isEn ? 'transparent' : 'white';
+        btnFr.style.color = isEn ? 'var(--text-muted)' : 'var(--accent-red)';
+        btnFr.style.boxShadow = isEn ? 'none' : 'var(--card-shadow)';
     }
 
     updateBuildTotals();
@@ -42,9 +42,9 @@ function openModal(comp) {
     activeModalComponent = comp;
 
     elements.modalTitle.textContent = comp.name || 'Unnamed';
-    elements.modalMfg.textContent   = comp.manufacturer || 'Unknown';
-    elements.modalPid.textContent   = comp.pid || 'N/A';
-    elements.modalDesc.textContent  = comp.description || '';
+    elements.modalMfg.textContent = comp.manufacturer || 'Unknown';
+    elements.modalPid.textContent = comp.pid || 'N/A';
+    elements.modalDesc.textContent = comp.description || '';
 
     if (comp.link) {
         elements.modalLink.href = comp.link;
@@ -61,24 +61,53 @@ function openModal(comp) {
     const sd = comp.schema_data || {};
     const ignoredKeys = ['tags', 'compatibility', 'weight_g'];
 
-    Object.keys(sd).forEach(key => {
-        if (ignoredKeys.includes(key)) return;
-        const val = sd[key];
+    const blueprint = schemaTemplate[currentCategory]?.[0];
 
-        if (key.startsWith('_')) {
-            notesHtml.push(`<div class="note-item"><strong>${key}</strong><span>${val}</span></div>`);
-        } else if (val !== null && typeof val !== 'object') {
-            let displayVal = val;
-            let valClass = '';
-            if (typeof val === 'boolean') {
-                displayVal = val ? (currentLang === 'fr' ? 'Oui' : 'Yes') : (currentLang === 'fr' ? 'Non' : 'No');
-                valClass = val ? 'bool-true' : 'bool-false';
+    if (blueprint) {
+        Object.keys(blueprint).forEach(key => {
+            if (ignoredKeys.includes(key)) return;
+
+            const val = sd.hasOwnProperty(key) ? sd[key] : null;
+
+            if (key.startsWith('_')) {
+                const displayVal = (val !== null && val !== '') ? val : '<span class="slot-empty-text">null</span>';
+                notesHtml.push(`<div class="note-item"><strong>${key}</strong><span>${displayVal}</span></div>`);
+            } else {
+                let displayVal = '<span class="slot-empty-text">null</span>';
+                let valClass = '';
+                if (val !== null && typeof val !== 'object' && val !== '') {
+                    displayVal = val;
+                    if (typeof val === 'boolean') {
+                        displayVal = val ? (currentLang === 'fr' ? 'Oui' : 'Yes') : (currentLang === 'fr' ? 'Non' : 'No');
+                        valClass = val ? 'bool-true' : 'bool-false';
+                    }
+                } else if (Array.isArray(val) && val.length > 0 && typeof val[0] !== 'object') {
+                    displayVal = val.join(', ');
+                }
+                specsHtml.push(`<div class="spec-item"><span class="spec-label">${formatTitle(key)}</span><span class="spec-value ${valClass}">${displayVal}</span></div>`);
             }
-            specsHtml.push(`<div class="spec-item"><span class="spec-label">${formatTitle(key)}</span><span class="spec-value ${valClass}">${displayVal}</span></div>`);
-        } else if (Array.isArray(val) && typeof val[0] !== 'object') {
-            specsHtml.push(`<div class="spec-item"><span class="spec-label">${formatTitle(key)}</span><span class="spec-value">${val.join(', ')}</span></div>`);
-        }
-    });
+        });
+    } else {
+        // Fallback if no blueprint loaded
+        Object.keys(sd).forEach(key => {
+            if (ignoredKeys.includes(key)) return;
+            const val = sd[key];
+
+            if (key.startsWith('_')) {
+                notesHtml.push(`<div class="note-item"><strong>${key}</strong><span>${val}</span></div>`);
+            } else if (val !== null && typeof val !== 'object') {
+                let displayVal = val;
+                let valClass = '';
+                if (typeof val === 'boolean') {
+                    displayVal = val ? (currentLang === 'fr' ? 'Oui' : 'Yes') : (currentLang === 'fr' ? 'Non' : 'No');
+                    valClass = val ? 'bool-true' : 'bool-false';
+                }
+                specsHtml.push(`<div class="spec-item"><span class="spec-label">${formatTitle(key)}</span><span class="spec-value ${valClass}">${displayVal}</span></div>`);
+            } else if (Array.isArray(val) && typeof val[0] !== 'object') {
+                specsHtml.push(`<div class="spec-item"><span class="spec-label">${formatTitle(key)}</span><span class="spec-value">${val.join(', ')}</span></div>`);
+            }
+        });
+    }
 
     elements.modalSpecs.innerHTML = specsHtml.join('');
 
@@ -90,8 +119,29 @@ function openModal(comp) {
     }
 
     // Compatibility section
+    const blueprintCompat = blueprint?.compatibility || {};
     const compCompat = comp.schema_data?.compatibility || {};
-    if (Object.keys(compCompat).length > 0) {
+    const hasCompatBlueprint = Object.keys(blueprintCompat).length > 0;
+    const hasCompCompat = Object.keys(compCompat).length > 0;
+
+    if (hasCompatBlueprint) {
+        elements.modalCompat.innerHTML = Object.keys(blueprintCompat).map(k => {
+            const v = compCompat.hasOwnProperty(k) ? compCompat[k] : null;
+            let displayVal = '<span class="slot-empty-text">null</span>';
+            if (v !== null && v !== '') {
+                if (Array.isArray(v) && v.length > 0) displayVal = v.join(', ');
+                else if (typeof v === 'boolean') displayVal = v ? 'Yes' : 'No';
+                else displayVal = v;
+            }
+            return `
+                <div class="spec-item" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.05);">
+                    <span class="spec-label" style="color: var(--accent-cyan);">${formatTitle(k)}</span>
+                    <span class="spec-value">${displayVal}</span>
+                </div>`;
+        }).join('');
+        elements.modalCompatSection.classList.remove('hidden');
+    } else if (hasCompCompat) {
+        // Fallback
         elements.modalCompat.innerHTML = Object.entries(compCompat).map(([k, v]) => {
             let displayVal = v;
             if (Array.isArray(v)) displayVal = v.join(', ');
@@ -141,7 +191,7 @@ function closeModal() {
     document.body.style.overflow = '';
 }
 
-window.switchModalItem = function(pid) {
+window.switchModalItem = function (pid) {
     if (!schemaData[currentCategory]) return;
     const item = schemaData[currentCategory].find(c => c.pid === pid);
     if (item) {

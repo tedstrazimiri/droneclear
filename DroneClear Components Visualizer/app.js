@@ -12,7 +12,19 @@ async function initApp() {
     initBuildDrawer();
     injectShortcutsOverlay();
     initShortcuts();
+    await fetchMasterSchema();
     await fetchAllCategories();
+}
+
+async function fetchMasterSchema() {
+    try {
+        const res = await fetch('/api/schema/');
+        if (!res.ok) throw new Error("Could not load schema from API.");
+        const data = await res.json();
+        schemaTemplate = data.components;
+    } catch (e) {
+        console.error("Failed to fetch master schema.", e);
+    }
 }
 
 function setupEventListeners() {

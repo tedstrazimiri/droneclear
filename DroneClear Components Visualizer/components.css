@@ -206,8 +206,8 @@
 }
 
 .modal-image-placeholder {
-    width: 120px;
-    height: 120px;
+    width: 200px;
+    height: 200px;
     border-radius: var(--radius-md);
     background-color: rgba(255, 255, 255, 0.05);
     display: flex;
@@ -229,12 +229,18 @@
 
 .modal-title-area {
     flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto 1fr;
+    gap: 8px 16px;
+    align-content: start;
 }
 
 .modal-title-area h2 {
     font-size: 28px;
     font-weight: 700;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
+    grid-column: 1 / -1;
 }
 
 .modal-info-slot {
@@ -284,6 +290,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    grid-column: 1 / -1;
 }
 
 .modal-body-scroll {
@@ -330,6 +337,13 @@
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 16px;
     margin-bottom: 32px;
+}
+
+.slot-empty-text {
+    font-size: 14px;
+    color: var(--text-faint);
+    font-style: italic;
+    font-family: monospace;
 }
 
 .spec-item {

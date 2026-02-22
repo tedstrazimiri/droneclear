@@ -88,6 +88,7 @@ const elements = {
 };
 
 // --- Component Cache & Navigation State ---
+let schemaTemplate = {};
 let schemaData = {};
 let currentCategory = null;
 let activeModalComponent = null;
@@ -143,15 +144,15 @@ let currentBuild = {
 let wizardActive = false;
 let wizardCurrentStep = 0;
 const wizardSequence = [
-    { cat: 'frames',             prompt: 'Start with the foundation. Select a Frame.',                          name: 'Frames' },
-    { cat: 'flight_controllers', prompt: 'Now, pick a Flight Controller that mounts to your frame.',            name: 'Flight Controllers' },
-    { cat: 'escs',               prompt: 'Select an ESC (or skip if your FC is an AIO).',                      name: 'ESCs' },
-    { cat: 'motors',             prompt: 'Choose Motors that fit your frame and match your ESC rating.',        name: 'Motors' },
-    { cat: 'propellers',         prompt: 'Pick Propellers that fit the frame.',                                 name: 'Propellers' },
-    { cat: 'video_transmitters', prompt: 'Select a VTX for your video feed.',                                   name: 'Video Transmitters' },
-    { cat: 'fpv_cameras',        prompt: 'Pick a camera compatible with your VTX.',                             name: 'FPV Cameras' },
-    { cat: 'receivers',          prompt: 'Choose a Receiver for your radio link.',                              name: 'Receivers' },
-    { cat: 'batteries',          prompt: 'Finally, select a Battery.',                                          name: 'Batteries' }
+    { cat: 'frames', prompt: 'Start with the foundation. Select a Frame.', name: 'Frames' },
+    { cat: 'flight_controllers', prompt: 'Now, pick a Flight Controller that mounts to your frame.', name: 'Flight Controllers' },
+    { cat: 'escs', prompt: 'Select an ESC (or skip if your FC is an AIO).', name: 'ESCs' },
+    { cat: 'motors', prompt: 'Choose Motors that fit your frame and match your ESC rating.', name: 'Motors' },
+    { cat: 'propellers', prompt: 'Pick Propellers that fit the frame.', name: 'Propellers' },
+    { cat: 'video_transmitters', prompt: 'Select a VTX for your video feed.', name: 'Video Transmitters' },
+    { cat: 'fpv_cameras', prompt: 'Pick a camera compatible with your VTX.', name: 'FPV Cameras' },
+    { cat: 'receivers', prompt: 'Choose a Receiver for your radio link.', name: 'Receivers' },
+    { cat: 'batteries', prompt: 'Finally, select a Battery.', name: 'Batteries' }
 ];
 
 // --- Toast timer ---
