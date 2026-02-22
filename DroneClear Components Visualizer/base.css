@@ -1,12 +1,12 @@
 :root {
     /* Color Palette - Canadian Light Theme */
-    --bg-dark: #f8fafc;
-    /* Main background, slightly cool off-white */
+    --bg-dark: #f0f2f5;
+    /* Main canvas background, flat soft neutral */
     --bg-panel: #ffffff;
     /* Pure white for cards and sidebars */
     --bg-panel-hover: #f1f5f9;
     /* Light wash for hover states */
-    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-bg: rgba(255, 255, 255, 0.90);
 
     --text-main: #0f172a;
     /* Near black for deep contrast */
@@ -54,27 +54,28 @@
    Dark Mode — applied by adding [data-theme="dark"] to <html>
 --------------------------------------------------------------- */
 [data-theme="dark"] {
-    --bg-dark: #0f1117;
-    --bg-panel: #1a1d27;
-    --bg-panel-hover: #222533;
-    --glass-bg: rgba(26, 29, 39, 0.92);
+    --bg-dark: #000000;
+    --bg-panel: #111111;
+    --bg-panel-hover: #1c1c1c;
+    --glass-bg: rgba(17, 17, 17, 0.95);
 
-    --text-main: #e8eaf0;
+    --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --text-faint: #475569;
 
-    /* Keep brand red, slightly brighter for dark background */
-    --accent-red: #e63329;
+    /* Keep brand red, extremely vibrant on true black */
+    --accent-red: #ff3b30;
     --accent-darkred: #da291c;
-    --accent-blue: #38bdf8;
+    --accent-blue: #0a84ff;
 
-    --border-color: rgba(255, 255, 255, 0.07);
-    --border-hover: rgba(255, 255, 255, 0.14);
+    --border-color: rgba(255, 255, 255, 0.10);
+    --border-hover: rgba(255, 255, 255, 0.20);
 
-    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-    --card-shadow-hover: 0 10px 20px -3px rgba(0, 0, 0, 0.5), 0 4px 8px -4px rgba(0, 0, 0, 0.4);
-    --inset-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
-    --glow-shadow: 0 0 20px rgba(230, 51, 41, 0.25);
+    /* Use stark black drop shadows so things don't look muddy grey */
+    --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.8), 0 1px 3px rgba(0, 0, 0, 0.6);
+    --card-shadow-hover: 0 10px 24px rgba(0, 0, 0, 0.9), 0 4px 8px rgba(0, 0, 0, 0.7);
+    --inset-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.9);
+    --glow-shadow: 0 0 20px rgba(255, 59, 48, 0.3);
 }
 
 * {
@@ -102,4 +103,3 @@ body * {
 .hidden {
     display: none !important;
 }
-

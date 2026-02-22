@@ -245,7 +245,7 @@
 
 /* White menu button standard */
 .btn-menu {
-    background-color: #ffffff;
+    background-color: var(--bg-panel);
     color: var(--text-main);
     border: 1px solid var(--border-color);
     width: 100%;
@@ -253,10 +253,11 @@
 }
 
 .btn-menu:hover {
-    background-color: #f8fafc;
+    background-color: var(--bg-panel-hover);
     border-color: var(--border-hover);
     transform: translateY(-1px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+    /* Keeps general lift feel */
 }
 
 .btn-menu.active {
@@ -308,9 +309,7 @@ input[type="file"] {
     flex-direction: column;
     position: relative;
     overflow: hidden;
-    /* Soft white/gray gradient replacing the dark neon glow */
-    background: radial-gradient(circle at top right, rgba(218, 41, 28, 0.03), transparent 50%),
-        linear-gradient(to bottom, var(--bg-dark), #f1f5f9);
+    background-color: var(--bg-dark);
 }
 
 .topbar {
