@@ -1,13 +1,11 @@
 // =============================================================
 // editor.js — Parts Library Editor logic
-// v5 — Functional fixes:
-//   - Schema now loaded from /api/schema/ (live, not static file)
-//   - showToast() self-contained (no dependency on utils.js/state.js)
-//   - Save/delete give toast feedback instead of silent reload
-//   - Delete uses inline confirmation UI instead of browser confirm()
-//   - btnDelete uses .hidden class consistently
-//   - btnDroneDelete uses .hidden class consistently
-//   - "Create New" button added to topbar (in addition to FAB)
+// v6 — UX improvements:
+//   - ph-drone invalid icon → ph-cube in drone models empty state
+//   - Schema Attributes & Compat Rules sections now collapsible (<details>)
+//   - compSection show/hide now uses .hidden class (not style.display)
+//   - Removed scrollIntoView (form always visible in right split column)
+//   - Scroll right panel to top on form open for consistent UX
 // =============================================================
 
 let schemaTemplate = {};
@@ -259,7 +257,7 @@ async function loadDroneModels() {
         if (items.length === 0) {
             elements.itemsList.innerHTML = `
                 <div style="padding:40px;text-align:center;color:var(--text-muted);">
-                    <i class="ph ph-drone" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.4;"></i>
+                    <i class="ph ph-cube" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.4;"></i>
                     No drone models yet. Click <strong>New Drone Model</strong> to add one.
                 </div>`;
         } else {
@@ -306,7 +304,7 @@ function openForm(item = null) {
     elements.formContainer.classList.remove('hidden');
     // Hide delete confirm bar whenever form opens
     elements.deleteConfirmBar?.classList.add('hidden');
-    elements.formContainer.scrollIntoView({ behavior: 'smooth' });
+    document.querySelector('.editor-split-form')?.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (item) {
         elements.formTitle.textContent = `Edit Component: ${item.pid}`;
@@ -338,7 +336,7 @@ function openForm(item = null) {
 function generateDynamicFields(existingData) {
     elements.dynamicFieldsGrid.innerHTML = '';
     elements.compGrid.innerHTML = '';
-    elements.compSection.style.display = 'none';
+    elements.compSection.classList.add('hidden');
 
     const blueprint = schemaTemplate[currentCategory]?.[0] || null;
     if (!blueprint) {
@@ -368,7 +366,7 @@ function generateDynamicFields(existingData) {
     });
 
     if (blueprint.compatibility) {
-        elements.compSection.style.display = 'block';
+        elements.compSection.classList.remove('hidden');
         const existingComp = existingData.compatibility || {};
         Object.keys(blueprint.compatibility).forEach(key => {
             const wrapper = document.createElement('div');
@@ -561,7 +559,7 @@ function openDroneForm(item = null) {
     elements.formContainer.classList.add('hidden');
     elements.droneFormContainer.classList.remove('hidden');
     elements.droneDeleteConfirmBar?.classList.add('hidden');
-    elements.droneFormContainer.scrollIntoView({ behavior: 'smooth' });
+    document.querySelector('.editor-split-form')?.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (item) {
         elements.droneFormTitle.textContent = `Edit Drone: ${item.pid}`;

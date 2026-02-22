@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'style.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'style.css' %}?v=6">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script>
         // Apply saved theme before paint to avoid flash
@@ -104,8 +104,16 @@
                     <h2 id="workspace-subtitle" class="editor-workspace-title">Components</h2>
                 </div>
 
-                <!-- Item list -->
-                <div id="editor-items-list" class="editor-items-list"></div>
+                <!-- Split layout: left = item list, right = form panels -->
+                <div class="editor-split">
+
+                <!-- Left column: item list -->
+                <div class="editor-split-list">
+                    <div id="editor-items-list" class="editor-items-list"></div>
+                </div>
+
+                <!-- Right column: form panels -->
+                <div class="editor-split-form">
 
                 <!-- Component form panel -->
                 <div class="glass-panel hidden editor-panel" id="item-form-container">
@@ -142,17 +150,17 @@
                         </div>
 
                         <!-- Dynamic schema fields -->
-                        <div class="form-section" id="dynamic-fields-container">
-                            <h3 class="form-section-title"><i class="ph ph-sliders"></i> Schema Attributes</h3>
+                        <details class="form-section form-collapsible" id="dynamic-fields-container" open>
+                            <summary class="form-section-title"><i class="ph ph-sliders"></i> Schema Attributes</summary>
                             <div class="editor-form" id="dynamic-fields-grid"></div>
-                        </div>
+                        </details>
 
                         <!-- Compatibility rules -->
-                        <div class="form-section hidden" id="compatibility-section">
-                            <h3 class="form-section-title"><i class="ph ph-link"></i> Compatibility Rules</h3>
+                        <details class="form-section form-collapsible hidden" id="compatibility-section">
+                            <summary class="form-section-title"><i class="ph ph-link"></i> Compatibility Rules</summary>
                             <p class="form-section-hint">Define strict physical constraints for the Build Engine.</p>
                             <div class="editor-form compat-grid" id="compatibility-fields-grid"></div>
-                        </div>
+                        </details>
 
                         <div class="form-actions">
                             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -244,9 +252,12 @@
                             </div>
                         </div>
                     </form>
-                </div>
+                </div><!-- /#drone-form-container -->
 
-            </div>
+                </div><!-- /.editor-split-form -->
+                </div><!-- /.editor-split -->
+
+            </div><!-- /#editor-workspace -->
         </main>
     </div>
 
@@ -254,7 +265,7 @@
         <i class="ph ph-plus"></i> Create New
     </button>
 
-    <script src="{% static 'editor.js' %}?v=5"></script>
+    <script src="{% static 'editor.js' %}?v=6"></script>
     <script>
         (function () {
             function applyTheme(dark) {
