@@ -10,9 +10,9 @@ function applyFiltersAndSort(components, searchTerm) {
         const lowerTerm = searchTerm.toLowerCase();
         result = result.filter(comp => {
             const nameSearch = (comp.name || '').toLowerCase().includes(lowerTerm);
-            const mfgSearch  = (comp.manufacturer || '').toLowerCase().includes(lowerTerm);
+            const mfgSearch = (comp.manufacturer || '').toLowerCase().includes(lowerTerm);
             const descSearch = (comp.description || '').toLowerCase().includes(lowerTerm);
-            const tagSearch  = (comp.schema_data?.tags || []).some(tag => String(tag).toLowerCase().includes(lowerTerm));
+            const tagSearch = (comp.schema_data?.tags || []).some(tag => String(tag).toLowerCase().includes(lowerTerm));
             return nameSearch || mfgSearch || descSearch || tagSearch;
         });
     }
@@ -37,7 +37,7 @@ function applyFiltersAndSort(components, searchTerm) {
     if (currentSort !== 'default') {
         result.sort((a, b) => {
             switch (currentSort) {
-                case 'name-asc':  return (a.name || '').localeCompare(b.name || '');
+                case 'name-asc': return (a.name || '').localeCompare(b.name || '');
                 case 'name-desc': return (b.name || '').localeCompare(a.name || '');
                 case 'weight-asc': {
                     const wa = parseFloat(a.schema_data?.weight_g) || Infinity;
@@ -126,10 +126,10 @@ function resetFilters() {
     currentWeightMin = null;
     currentWeightMax = null;
 
-    if (elements.sortSelect)         elements.sortSelect.value = 'default';
+    if (elements.sortSelect) elements.sortSelect.value = 'default';
     if (elements.manufacturerSelect) elements.manufacturerSelect.value = '';
-    if (elements.weightMin)          elements.weightMin.value = '';
-    if (elements.weightMax)          elements.weightMax.value = '';
+    if (elements.weightMin) elements.weightMin.value = '';
+    if (elements.weightMax) elements.weightMax.value = '';
 
     updateFilterChips();
 }
@@ -143,10 +143,28 @@ function setupFilterListeners() {
     elements.sortSelect?.addEventListener('change', (e) => { currentSort = e.target.value; triggerRerender(); });
     elements.manufacturerSelect?.addEventListener('change', (e) => { currentManufacturer = e.target.value; triggerRerender(); });
 
+    // =========================================================================
+    // COLLABORATION NOTE (For other agent):
+    // Added cross-validation logic to the weight filters. If the user types a Min 
+    // that is greater than the current Max, we auto-correct it down to the Max 
+    // (and vice-versa). We also trigger visual error cues using the existing CSS.
+    // =========================================================================
+
     elements.weightMin?.addEventListener('input', () => {
         clearTimeout(weightDebounceTimer);
         weightDebounceTimer = setTimeout(() => {
-            const val = parseFloat(elements.weightMin.value);
+            let val = parseFloat(elements.weightMin.value);
+
+            // Bounds check: Min cannot be strictly greater than Max
+            if (!isNaN(val) && currentWeightMax !== null && val > currentWeightMax) {
+                val = currentWeightMax;
+                elements.weightMin.value = val;
+
+                // Visual feedback
+                elements.weightMin.classList.add('input-error');
+                setTimeout(() => elements.weightMin.classList.remove('input-error'), 800);
+            }
+
             currentWeightMin = isNaN(val) ? null : val;
             triggerRerender();
         }, 350);
@@ -155,7 +173,18 @@ function setupFilterListeners() {
     elements.weightMax?.addEventListener('input', () => {
         clearTimeout(weightDebounceTimer);
         weightDebounceTimer = setTimeout(() => {
-            const val = parseFloat(elements.weightMax.value);
+            let val = parseFloat(elements.weightMax.value);
+
+            // Bounds check: Max cannot be strictly less than Min
+            if (!isNaN(val) && currentWeightMin !== null && val < currentWeightMin) {
+                val = currentWeightMin;
+                elements.weightMax.value = val;
+
+                // Visual feedback
+                elements.weightMax.classList.add('input-error');
+                setTimeout(() => elements.weightMax.classList.remove('input-error'), 800);
+            }
+
             currentWeightMax = isNaN(val) ? null : val;
             triggerRerender();
         }, 350);

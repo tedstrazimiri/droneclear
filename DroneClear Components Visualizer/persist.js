@@ -101,7 +101,7 @@ async function openLoadBuildModal() {
                         <button class="btn btn-primary btn-sm" onclick="loadBuild('${b.pid}')">
                             <i class="ph ph-download-simple"></i> Load
                         </button>
-                        <button class="btn btn-outline btn-sm" style="border-color:rgba(239,68,68,0.3);color:#ef4444;" onclick="deleteBuild('${b.pid}', '${b.name.replace(/'/g, "\\'")}')">
+                        <button class="btn btn-outline btn-sm" style="border-color:rgba(239,68,68,0.3);color:#ef4444;" onclick="deleteBuild('${b.pid}', '${b.name.replace(/'/g, "\\'")}', this)">
                             <i class="ph ph-trash"></i>
                         </button>
                     </div>
@@ -117,7 +117,7 @@ function closeLoadBuildModal() {
     elements.loadBuildModal?.classList.add('hidden');
 }
 
-window.loadBuild = async function(pid) {
+window.loadBuild = async function (pid) {
     try {
         const response = await fetch(`/api/drone-models/${pid}/`);
         if (!response.ok) throw new Error('Build not found');
@@ -157,18 +157,51 @@ window.loadBuild = async function(pid) {
     }
 };
 
-window.deleteBuild = async function(pid, name) {
-    if (!confirm(`Delete build "${name}"? This cannot be undone.`)) return;
-    try {
-        const response = await fetch(`/api/drone-models/${pid}/`, {
-            method: 'DELETE',
-            headers: { 'X-CSRFToken': getCookie('csrftoken') }
-        });
-        if (!response.ok && response.status !== 204) throw new Error('Delete failed');
-        showToast(`Build "${name}" deleted.`, 'info');
-        openLoadBuildModal();
-    } catch (err) {
-        console.error(err);
-        showToast('Failed to delete build.', 'error');
-    }
+// =========================================================================
+// COLLABORATION NOTE (For other agent):
+// Replaced native `confirm()` with an inline HTML DOM swap to match the 
+// UX of the 'Clear Build' button. We target the specific `.saved-build-actions` 
+// div of the item being deleted and inject the [Confirm] / [Cancel] buttons.
+// =========================================================================
+window.deleteBuild = async function (pid, name, buttonElement) {
+    if (!buttonElement) return; // Fallback if not passed correctly
+
+    const actionsContainer = buttonElement.closest('.saved-build-actions');
+    if (!actionsContainer) return;
+
+    // Cache the original controls so we can restore them if the user cancels
+    const originalHTML = actionsContainer.innerHTML;
+
+    // Inject the inline confirmation state
+    actionsContainer.innerHTML = `
+        <span style="font-size:12px; font-weight:600; color:var(--accent-red); margin-right:8px;">Delete?</span>
+        <button class="btn btn-primary btn-sm" style="background:var(--accent-red);" id="confirm-del-${pid}">Yes</button>
+        <button class="btn btn-outline btn-sm" id="cancel-del-${pid}">No</button>
+    `;
+
+    // Handle Cancel
+    document.getElementById(`cancel-del-${pid}`).addEventListener('click', () => {
+        actionsContainer.innerHTML = originalHTML;
+    });
+
+    // Handle Confirm
+    document.getElementById(`confirm-del-${pid}`).addEventListener('click', async () => {
+        actionsContainer.innerHTML = `<span style="font-size:12px; color:var(--text-faint);"><i class="ph ph-spinner"></i> Deleting...</span>`;
+        try {
+            const response = await fetch(`/api/drone-models/${pid}/`, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            });
+            if (!response.ok && response.status !== 204) throw new Error('Delete failed');
+
+            showToast(`Build "${name}" deleted.`, 'info');
+            // Refresh the list
+            openLoadBuildModal();
+        } catch (err) {
+            console.error(err);
+            showToast('Failed to delete build.', 'error');
+            // Restore buttons on failure
+            actionsContainer.innerHTML = originalHTML;
+        }
+    });
 };
