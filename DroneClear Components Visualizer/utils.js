@@ -76,6 +76,7 @@ function showError(message) {
 }
 
 // --- Toast Notification ---
+let _toastTimer = null;
 function showToast(message, type = 'info') {
     let toast = document.getElementById('app-toast');
     if (!toast) {
@@ -92,6 +93,6 @@ function showToast(message, type = 'info') {
     toast.className = `app-toast app-toast--${type} show`;
     toast.innerHTML = `<i class="ph-fill ${icons[type] || 'ph-info'}"></i><span>${message}</span>`;
 
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
 }

@@ -156,5 +156,3 @@ const wizardSequence = [
     { cat: 'batteries', prompt: 'Finally, select a Battery.', name: 'Batteries' }
 ];
 
-// --- Toast timer ---
-let toastTimer = null;
