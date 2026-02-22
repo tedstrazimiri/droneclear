@@ -11,14 +11,29 @@ function initBuildDrawer() {
     elements.drawerCloseBtn.addEventListener('click', closeBuildDrawer);
     elements.buildOverlay.addEventListener('click', closeBuildDrawer);
 
+    const clearConfirmBar = document.getElementById('clear-confirm-bar');
+    const clearConfirmYes = document.getElementById('clear-confirm-yes');
+    const clearConfirmNo  = document.getElementById('clear-confirm-no');
+
     elements.clearBuildBtn?.addEventListener('click', () => {
-        if (confirm('Are you sure you want to clear your entire build?')) {
-            for (let key in currentBuild) currentBuild[key] = null;
-            renderBuildSlots();
-            updateBuildTotals();
-            updateBuildBadge();
-            validateBuild();
-        }
+        clearConfirmBar?.classList.remove('hidden');
+        elements.clearBuildBtn.classList.add('hidden');
+    });
+
+    clearConfirmNo?.addEventListener('click', () => {
+        clearConfirmBar?.classList.add('hidden');
+        elements.clearBuildBtn.classList.remove('hidden');
+    });
+
+    clearConfirmYes?.addEventListener('click', () => {
+        for (let key in currentBuild) currentBuild[key] = null;
+        renderBuildSlots();
+        updateBuildTotals();
+        updateBuildBadge();
+        validateBuild();
+        clearConfirmBar?.classList.add('hidden');
+        elements.clearBuildBtn.classList.remove('hidden');
+        showToast('Build cleared.', 'info');
     });
 
     // Save / Load build buttons
@@ -70,8 +85,21 @@ function removeFromBuild(category) {
 
 function renderBuildSlots() {
     elements.buildSlots.innerHTML = '';
-    const prioritySlots = ['frames', 'flight_controllers', 'escs', 'motors', 'propellers', 'video_transmitters', 'fpv_cameras', 'receivers', 'antennas', 'batteries'];
+    const prioritySlots = ['frames', 'flight_controllers', 'escs', 'motors', 'propellers', 'video_transmitters', 'fpv_cameras', 'receivers', 'antennas', 'batteries', 'action_cameras'];
     const allSlots = new Set([...prioritySlots, ...Object.keys(currentBuild)]);
+
+    // Show CTA hint when build is empty
+    const isEmpty = Object.values(currentBuild).every(v => v === null);
+    if (isEmpty) {
+        const hint = document.createElement('div');
+        hint.className = 'build-empty-hint';
+        hint.innerHTML = `
+            <i class="ph ph-wrench" style="font-size:32px; opacity:0.3; display:block; margin-bottom:10px;"></i>
+            <strong>Your build is empty</strong>
+            <p>Browse a category on the left, open a component and click <b>Add to Build</b> — or use the <b>Build Wizard</b> for a guided flow.</p>
+        `;
+        elements.buildSlots.appendChild(hint);
+    }
 
     allSlots.forEach(cat => {
         if (!currentBuild.hasOwnProperty(cat)) return;
@@ -89,7 +117,7 @@ function renderBuildSlots() {
                     <div class="slot-details">
                         <h4>${comp.name}</h4>
                         <div class="slot-metrics">
-                            <span style="color:var(--accent-cyan);">${price}</span>
+                            <span style="color:var(--accent-blue);">${price}</span>
                             <span>${weight}</span>
                         </div>
                     </div>

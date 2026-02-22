@@ -34,11 +34,6 @@ async function loadWizardStep() {
     await selectCategory(step.cat);
 
     openBuildDrawer();
-    setTimeout(() => {
-        if (wizardActive && !elements.buildDrawer.classList.contains('closed')) {
-            closeBuildDrawer();
-        }
-    }, 2500);
 }
 
 async function wizardNextStep() {
@@ -49,5 +44,24 @@ async function wizardNextStep() {
 function exitWizard(completed = false) {
     wizardActive = false;
     elements.wizardHeader?.classList.add('hidden');
-    if (completed) openBuildDrawer();
+    if (completed) {
+        openBuildDrawer();
+        showWizardCompleteBanner();
+    }
+}
+
+function showWizardCompleteBanner() {
+    const banner = document.getElementById('wizard-complete-banner');
+    const summary = document.getElementById('wizard-complete-summary');
+    if (!banner) return;
+
+    const count = Object.values(currentBuild).filter(c => c !== null).length;
+    const totalCostEl = elements.totalCostEl?.textContent || '$0.00';
+    const totalWeightEl = elements.totalWeightEl?.textContent || '0g';
+    if (summary) {
+        summary.textContent = `${count} component${count !== 1 ? 's' : ''} selected · ${totalWeightEl} · ${totalCostEl}`;
+    }
+
+    banner.classList.remove('hidden');
+    setTimeout(() => banner.classList.add('hidden'), 5000);
 }

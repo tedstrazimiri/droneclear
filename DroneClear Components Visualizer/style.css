@@ -1495,6 +1495,121 @@ input[type="file"] {
     line-height: 1.6;
 }
 
+/* ============================================================
+   BUILD DRAWER EMPTY STATE HINT
+   ============================================================ */
+
+.build-empty-hint {
+    text-align: center;
+    padding: 28px 20px;
+    color: var(--text-muted);
+    border-radius: var(--radius-md);
+    margin-bottom: 16px;
+}
+
+.build-empty-hint strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 8px;
+}
+
+.build-empty-hint p {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* ============================================================
+   WIZARD COMPLETION BANNER
+   ============================================================ */
+
+.wizard-complete-banner {
+    padding: 14px 20px;
+    background: rgba(22, 163, 74, 0.08);
+    border-bottom: 1px solid rgba(22, 163, 74, 0.25);
+    animation: slideDown 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.wizard-complete-banner.hidden {
+    display: none;
+}
+
+.wizard-complete-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.wizard-complete-inner strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    color: #15803d;
+    margin-bottom: 2px;
+}
+
+[data-theme="dark"] .wizard-complete-inner strong {
+    color: #4ade80;
+}
+
+.wizard-complete-inner p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   IN BUILD CARD STATE
+   ============================================================ */
+
+/* Card ring when this component is the active build selection */
+.card--in-build {
+    border-color: var(--accent-red) !important;
+    box-shadow: 0 0 0 2px rgba(218, 41, 28, 0.18), var(--card-shadow) !important;
+}
+
+.card--in-build::before {
+    opacity: 1 !important;
+}
+
+/* Green "✓ In Build" pill badge */
+.card-in-build-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #15803d;
+    background: rgba(22, 163, 74, 0.1);
+    border: 1px solid rgba(22, 163, 74, 0.25);
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+.card-in-build-badge i {
+    font-size: 13px;
+    color: #16a34a;
+}
+
+[data-theme="dark"] .card-in-build-badge {
+    color: #86efac;
+    background: rgba(22, 163, 74, 0.15);
+    border-color: rgba(22, 163, 74, 0.3);
+}
+
+[data-theme="dark"] .card-in-build-badge i {
+    color: #4ade80;
+}
+
 /* Weight tag in card header */
 .weight-tag {
     background: rgba(59, 130, 246, 0.1) !important;

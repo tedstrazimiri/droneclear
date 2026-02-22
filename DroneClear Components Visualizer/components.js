@@ -170,15 +170,23 @@ function createComponentCard(comp, highlightData = null) {
     const tooltipCompat   = i18n[currentLang].lblCompatible;
     const tooltipIncompat = i18n[currentLang].lblIncompatible;
 
+    // "In Build" state — highlight card if this component is already selected for the current slot
+    const isInBuild = currentBuild[currentCategory]?.pid === comp.pid;
+    if (isInBuild) {
+        card.classList.add('card--in-build');
+    }
+
     if (highlightData?.active) {
         if (highlightData.matchPids.has(comp.pid)) {
-            card.style.borderColor = 'var(--accent-green)';
-            card.style.boxShadow = '0 0 15px rgba(34, 197, 94, 0.2)';
+            if (!isInBuild) {
+                card.style.borderColor = 'var(--accent-green)';
+                card.style.boxShadow = '0 0 15px rgba(34, 197, 94, 0.2)';
+            }
             card.title = tooltipCompat;
         } else if (highlightData.warningPids.has(comp.pid)) {
-            card.style.borderColor = 'var(--accent-yellow)';
+            if (!isInBuild) card.style.borderColor = 'var(--accent-yellow)';
             card.title = tooltipCompat + ' (Warnings)';
-        } else {
+        } else if (!isInBuild) {
             card.style.opacity = '0.5';
             card.title = tooltipIncompat;
         }
@@ -199,12 +207,14 @@ function createComponentCard(comp, highlightData = null) {
     }
 
     const priceHtml = comp.approx_price ? `<span class="card-price">${comp.approx_price}</span>` : '';
+    const inBuildBadge = isInBuild ? `<span class="card-in-build-badge"><i class="ph-fill ph-check-circle"></i> In Build</span>` : '';
 
     card.innerHTML = `
         <div class="card-header">
             <span class="card-pid">${comp.pid || 'N/A'}</span>
             ${weightG ? `<span class="tag weight-tag">${weightG}g</span>` : ''}
             ${priceHtml}
+            ${inBuildBadge}
         </div>
         <div class="list-name-col">
             <div class="card-mfg">${comp.manufacturer || 'Unknown'}</div>
