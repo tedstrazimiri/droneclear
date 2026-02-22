@@ -1,37 +1,12 @@
 // =============================================================
 // editor.js — Parts Library Editor logic
-// v6 — UX improvements:
-//   - ph-drone invalid icon → ph-cube in drone models empty state
-//   - Schema Attributes & Compat Rules sections now collapsible (<details>)
-//   - compSection show/hide now uses .hidden class (not style.display)
-//   - Removed scrollIntoView (form always visible in right split column)
-//   - Scroll right panel to top on form open for consistent UX
+// v7 — Removed self-contained showToast duplicate; now uses showToast
+//      from shared utils.js (loaded before this script in editor.html).
 // =============================================================
 
 let schemaTemplate = {};
 let currentCategory = null;
 let editingComponent = null;
-let editorToastTimer = null;
-
-// --- Self-contained toast (editor.js has no access to utils.js globals) ---
-function showToast(message, type = 'info') {
-    let toast = document.getElementById('app-toast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'app-toast';
-        document.body.appendChild(toast);
-    }
-    const icons = {
-        success: 'ph-check-circle',
-        error: 'ph-warning-circle',
-        warning: 'ph-warning',
-        info: 'ph-info'
-    };
-    toast.className = `app-toast app-toast--${type} show`;
-    toast.innerHTML = `<i class="ph-fill ${icons[type] || 'ph-info'}"></i><span>${message}</span>`;
-    clearTimeout(editorToastTimer);
-    editorToastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
-}
 
 const elements = {
     nav: document.getElementById('editor-nav'),

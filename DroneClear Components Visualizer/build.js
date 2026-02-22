@@ -65,6 +65,7 @@ function openBuildDrawer() {
 function closeBuildDrawer() {
     elements.buildOverlay.classList.add('hidden');
     elements.buildDrawer.classList.add('closed');
+    if (wizardActive) exitWizard(false);
 }
 
 function addToBuild(comp) {

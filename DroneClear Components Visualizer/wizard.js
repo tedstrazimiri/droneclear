@@ -3,6 +3,7 @@
 // =============================================================
 
 async function startWizard() {
+    if (wizardActive) return;
     wizardActive = true;
     wizardCurrentStep = 0;
 

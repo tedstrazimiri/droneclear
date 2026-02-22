@@ -99,6 +99,7 @@ let currentManufacturer = '';
 let currentWeightMin = null;
 let currentWeightMax = null;
 let weightDebounceTimer = null;
+let searchDebounceTimer = null;
 
 // --- View State: 'grid' | 'list' ---
 let currentView = 'grid';

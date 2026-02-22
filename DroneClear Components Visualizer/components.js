@@ -292,7 +292,10 @@ function createComponentCard(comp, highlightData = null) {
 
 function handleSearch(e) {
     const term = e.target.value.trim();
-    if (currentCategory) renderComponents(term);
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        if (currentCategory) renderComponents(term);
+    }, 250);
 }
 
 function findSimilarComponents(targetComp) {
