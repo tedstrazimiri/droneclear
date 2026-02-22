@@ -133,7 +133,9 @@ async function renderComponents(searchTerm = '') {
 
     // Wizard highlighting
     let highlightData = { active: false, matchPids: new Set(), warningPids: new Set() };
-    if (wizardActive && currentBuild) {
+    const activeWizardCategory = wizardActive && wizardCurrentStep < wizardSequence.length ? wizardSequence[wizardCurrentStep].cat : null;
+
+    if (wizardActive && currentBuild && currentCategory === activeWizardCategory) {
         highlightData.active = true;
         filteredComponents.forEach(comp => {
             const simulatedBuild = { ...currentBuild, [currentCategory]: comp };
