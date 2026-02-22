@@ -164,10 +164,10 @@ function createComponentCard(comp, highlightData = null) {
     card.className = 'card';
 
     const tagsArray = comp.schema_data?.tags || [];
-    const weightG   = comp.schema_data?.weight_g;
-    const tagsHtml  = tagsArray.slice(0, 4).map(t => `<span class="tag">${t}</span>`).join('');
+    const weightG = comp.schema_data?.weight_g;
+    const tagsHtml = tagsArray.slice(0, 4).map(t => `<span class="tag">${t}</span>`).join('');
 
-    const tooltipCompat   = i18n[currentLang].lblCompatible;
+    const tooltipCompat = i18n[currentLang].lblCompatible;
     const tooltipIncompat = i18n[currentLang].lblIncompatible;
 
     // "In Build" state — highlight card if this component is already selected for the current slot
@@ -207,14 +207,28 @@ function createComponentCard(comp, highlightData = null) {
     }
 
     const priceHtml = comp.approx_price ? `<span class="card-price">${comp.approx_price}</span>` : '';
-    const inBuildBadge = isInBuild ? `<span class="card-in-build-badge"><i class="ph-fill ph-check-circle"></i> In Build</span>` : '';
+    const inBuildBadge = isInBuild ? `<span class="card-in-build-badge" style="font-size:12px; color:#10b981; font-weight:600;"><i class="ph-fill ph-check-circle"></i> In Build</span>` : '';
+
+    // =========================================================================
+    // COLLABORATION NOTE (For other agent):
+    // Tier 3 Builder Skip Flow: Injected an inline "Quick Add" button onto the card.
+    // We detect if we're in Builder mode simply by checking if the global `addToBuild` 
+    // function is available (it's only loaded in `build.js` on the index page).
+    // =========================================================================
+    let quickAddHtml = '';
+    if (!isInBuild && typeof addToBuild === 'function') {
+        quickAddHtml = `<button class="btn-quick-add" title="Quick Add to Build"><i class="ph ph-plus-circle"></i></button>`;
+    }
 
     card.innerHTML = `
         <div class="card-header">
             <span class="card-pid">${comp.pid || 'N/A'}</span>
-            ${weightG ? `<span class="tag weight-tag">${weightG}g</span>` : ''}
-            ${priceHtml}
-            ${inBuildBadge}
+            <div style="display:flex; align-items:center; gap:8px;">
+                ${weightG ? `<span class="tag weight-tag">${weightG}g</span>` : ''}
+                ${priceHtml}
+                ${inBuildBadge}
+                ${quickAddHtml}
+            </div>
         </div>
         <div class="list-name-col">
             <div class="card-mfg">${comp.manufacturer || 'Unknown'}</div>
@@ -226,6 +240,51 @@ function createComponentCard(comp, highlightData = null) {
     `;
 
     card.addEventListener('click', () => openModal(comp));
+
+    // Hook up Quick Add button if it exists
+    const quickAddEl = card.querySelector('.btn-quick-add');
+    if (quickAddEl) {
+        quickAddEl.addEventListener('click', (e) => {
+            e.stopPropagation(); // crucial: don't open the detail modal!
+
+            const existingComp = currentBuild[currentCategory];
+            if (existingComp && existingComp.pid !== comp.pid) {
+                // Inline card replacement confirmation
+                const originalHtml = quickAddEl.innerHTML;
+                quickAddEl.style.width = 'auto';
+                quickAddEl.style.borderRadius = '16px';
+                quickAddEl.style.padding = '0 10px';
+                quickAddEl.style.background = 'var(--bg-panel)';
+                quickAddEl.innerHTML = `
+                    <span style="font-size:11px; margin-right:6px; font-weight:600;">Replace?</span>
+                    <i class="ph-fill ph-check-circle" id="quick-yes" style="color:#10b981; margin-right:4px;"></i>
+                    <i class="ph-fill ph-x-circle" id="quick-no" style="color:#ef4444;"></i>
+                `;
+
+                const cancelBtn = quickAddEl.querySelector('#quick-no');
+                const confirmBtn = quickAddEl.querySelector('#quick-yes');
+
+                cancelBtn.onclick = (ev) => {
+                    ev.stopPropagation();
+                    quickAddEl.style.width = '28px';
+                    quickAddEl.style.borderRadius = '50%';
+                    quickAddEl.style.padding = '0';
+                    quickAddEl.style.background = 'transparent';
+                    quickAddEl.innerHTML = originalHtml;
+                };
+
+                confirmBtn.onclick = (ev) => {
+                    ev.stopPropagation();
+                    addToBuild(comp);
+                    triggerRerender();
+                };
+            } else {
+                addToBuild(comp);
+                triggerRerender();
+            }
+        });
+    }
+
     return card;
 }
 

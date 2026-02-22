@@ -23,11 +23,11 @@ function setupEventListeners() {
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         const helpModal = document.getElementById('help-modal');
-        if (!elements.saveBuildModal?.classList.contains('hidden'))  { closeSaveBuildModal(); return; }
-        if (!elements.loadBuildModal?.classList.contains('hidden'))   { closeLoadBuildModal(); return; }
-        if (!helpModal?.classList.contains('hidden'))                  { helpModal.classList.add('hidden'); return; }
-        if (!elements.modal?.classList.contains('hidden'))             { closeModal(); return; }
-        if (!elements.buildDrawer?.classList.contains('closed'))       { closeBuildDrawer(); return; }
+        if (!elements.saveBuildModal?.classList.contains('hidden')) { closeSaveBuildModal(); return; }
+        if (!elements.loadBuildModal?.classList.contains('hidden')) { closeLoadBuildModal(); return; }
+        if (!helpModal?.classList.contains('hidden')) { helpModal.classList.add('hidden'); return; }
+        if (!elements.modal?.classList.contains('hidden')) { closeModal(); return; }
+        if (!elements.buildDrawer?.classList.contains('closed')) { closeBuildDrawer(); return; }
     });
 
     // Component modal
@@ -36,9 +36,53 @@ function setupEventListeners() {
 
     // Add to build from modal
     elements.modalAddBtn.addEventListener('click', () => {
-        if (activeModalComponent) {
-            addToBuild(activeModalComponent);
+        if (!activeModalComponent) return;
+
+        const existingComp = currentBuild[currentCategory];
+        if (existingComp && existingComp.pid !== activeModalComponent.pid) {
+            // Tier 3: Inline Replacement Confirmation
+            const footer = document.getElementById('modal-footer-actions');
+            let confirmBar = document.getElementById('modal-replace-confirm');
+
+            // Generate short readable name
+            let shortName = existingComp.name || 'Component';
+            if (shortName.length > 25) shortName = shortName.substring(0, 25) + '...';
+
+            if (!confirmBar) {
+                confirmBar = document.createElement('div');
+                confirmBar.id = 'modal-replace-confirm';
+                confirmBar.style.cssText = "display:flex; align-items:center; gap:8px; margin-right:auto; background:rgba(218, 41, 28, 0.1); padding:6px 12px; border-radius:var(--radius-sm); border:1px solid rgba(218, 41, 28, 0.2);";
+                confirmBar.innerHTML = `
+                    <span style="font-size:12px; color:var(--accent-red); font-weight:600;"><i class="ph ph-warning"></i> Replace ${shortName}?</span>
+                    <button type="button" class="btn btn-primary" id="modal-replace-yes" style="padding:4px 10px; font-size:12px;">Yes</button>
+                    <button type="button" class="btn btn-outline" id="modal-replace-no" style="padding:4px 10px; font-size:12px;">No</button>
+                `;
+                footer.insertBefore(confirmBar, elements.modalAddBtn);
+
+                document.getElementById('modal-replace-no').onclick = () => {
+                    confirmBar.style.display = 'none';
+                    elements.modalAddBtn.style.display = 'inline-flex';
+                };
+
+                document.getElementById('modal-replace-yes').onclick = () => {
+                    confirmBar.style.display = 'none';
+                    elements.modalAddBtn.style.display = 'inline-flex';
+                    processAdd(activeModalComponent);
+                };
+            } else {
+                confirmBar.querySelector('span').innerHTML = `<i class="ph ph-warning"></i> Replace ${shortName}?`;
+                confirmBar.style.display = 'flex';
+            }
+
+            elements.modalAddBtn.style.display = 'none';
+        } else {
+            processAdd(activeModalComponent);
+        }
+
+        function processAdd(comp) {
+            addToBuild(comp);
             closeModal();
+            triggerRerender();
             if (!wizardActive) {
                 openBuildDrawer();
             } else {
@@ -55,10 +99,10 @@ function setupEventListeners() {
 
     // Global Help modal
     const btnGlobalHelp = document.getElementById('btn-global-help');
-    const helpModal     = document.getElementById('help-modal');
-    const helpCloseBtn  = document.getElementById('help-close-btn');
+    const helpModal = document.getElementById('help-modal');
+    const helpCloseBtn = document.getElementById('help-close-btn');
     btnGlobalHelp?.addEventListener('click', () => helpModal?.classList.remove('hidden'));
-    helpCloseBtn?.addEventListener('click',  () => helpModal?.classList.add('hidden'));
+    helpCloseBtn?.addEventListener('click', () => helpModal?.classList.add('hidden'));
     helpModal?.addEventListener('click', (e) => { if (e.target === helpModal) helpModal.classList.add('hidden'); });
 
     // Language toggles

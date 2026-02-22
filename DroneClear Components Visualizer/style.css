@@ -514,6 +514,29 @@ input[type="file"] {
     border-radius: 4px;
 }
 
+.btn-quick-add {
+    background: transparent;
+    color: var(--accent-red);
+    border: 1px solid var(--accent-red);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 16px;
+    box-shadow: 0 2px 4px rgba(218, 41, 28, 0.1);
+}
+
+.btn-quick-add:hover {
+    background: var(--accent-red);
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(218, 41, 28, 0.3);
+}
+
 .card-title {
     font-size: 21px;
     font-weight: 600;
