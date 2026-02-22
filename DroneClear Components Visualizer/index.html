@@ -22,11 +22,6 @@
 
 <body>
     <div class="app-container">
-        <!-- Mobile Nav Toggle -->
-        <button class="mobile-nav-toggle" id="mobile-nav-toggle" style="display: none;">
-            <i class="ph ph-list" style="font-size: 24px;"></i>
-        </button>
-
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header" style="position: relative;">
@@ -86,17 +81,34 @@
         <!-- Main Content Area -->
         <main class="main-content">
             <header class="topbar">
-                <h1 class="page-title" id="current-category-title" data-i18n="textLoading">Loading Components...</h1>
-                <div class="search-bar" title="Search across tags, component names, or PIDs">
-                    <i class="ph ph-magnifying-glass search-icon"></i>
-                    <input type="text" id="search-input" placeholder="Search across component tags or names...">
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button class="mobile-nav-toggle" id="mobile-nav-toggle"
+                            style="display:none; background:none; border:none; cursor:pointer; color:var(--text-main);">
+                            <i class="ph ph-list" style="font-size:28px;"></i>
+                        </button>
+                        <h1 class="page-title" id="current-category-title" data-i18n="textLoading">Loading Components...
+                        </h1>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div class="search-bar" title="Search across tags, component names, or PIDs">
+                            <i class="ph ph-magnifying-glass search-icon"></i>
+                            <input type="text" id="search-input" placeholder="Search across component tags or names...">
+                        </div>
+
+                        <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
+
+                        <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode"
+                            aria-label="Toggle dark mode">
+                            <i class="ph ph-moon" id="dark-mode-icon"></i>
+                        </button>
+                        <button class="dark-mode-toggle" id="shortcuts-help-btn" title="Keyboard shortcuts (?)"
+                            aria-label="Show keyboard shortcuts">
+                            <i class="ph ph-keyboard"></i>
+                        </button>
+                    </div>
                 </div>
-                <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
-                    <i class="ph ph-moon" id="dark-mode-icon"></i>
-                </button>
-                <button class="dark-mode-toggle" id="shortcuts-help-btn" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
-                    <i class="ph ph-keyboard"></i>
-                </button>
             </header>
 
             <!-- Filter & Sort Toolbar -->
@@ -244,7 +256,7 @@
 
     <!-- Build Drawer -->
     <div class="build-drawer-overlay hidden" id="build-overlay"></div>
-    <div class="build-drawer" id="build-drawer">
+    <div class="build-drawer closed" id="build-drawer">
         <div class="drawer-header">
             <h2>Your Drone Build</h2>
             <button class="drawer-close" id="drawer-close-btn"><i class="ph ph-x"></i></button>
@@ -265,7 +277,8 @@
         <div class="wizard-header hidden" id="wizard-header"
             style="padding: 15px 20px; background: rgba(218, 41, 28, 0.06); border-bottom: 1px solid rgba(218, 41, 28, 0.2);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h3 style="color: var(--accent-red); margin: 0; font-size: 14px;"><i class="ph ph-rocket"></i> Build Wizard</h3>
+                <h3 style="color: var(--accent-red); margin: 0; font-size: 14px;"><i class="ph ph-rocket"></i> Build
+                    Wizard</h3>
                 <span id="wizard-step-counter" style="color: var(--text-muted); font-size: 12px;">Step 1 of 8</span>
             </div>
             <p id="wizard-prompt" style="font-size: 13px; margin: 0; color: var(--text-main);">Select a Frame...</p>
@@ -311,10 +324,14 @@
                 <i class="ph ph-trash"></i> Clear Build
             </button>
             <!-- Inline clear confirmation — replaces browser confirm() -->
-            <div id="clear-confirm-bar" class="hidden" style="display:flex; align-items:center; gap:8px; margin-top:8px; background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.3); border-radius:var(--radius-sm); padding:8px 12px;">
-                <span style="font-size:12px; color:#dc2626; font-weight:600; flex:1;"><i class="ph ph-warning"></i> Clear all slots?</span>
-                <button type="button" class="btn btn-danger" id="clear-confirm-yes" style="padding:4px 12px; font-size:12px;">Yes, Clear</button>
-                <button type="button" class="btn btn-outline" id="clear-confirm-no" style="padding:4px 12px; font-size:12px;">Cancel</button>
+            <div id="clear-confirm-bar" class="hidden"
+                style="display:flex; align-items:center; gap:8px; margin-top:8px; background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.3); border-radius:var(--radius-sm); padding:8px 12px;">
+                <span style="font-size:12px; color:#dc2626; font-weight:600; flex:1;"><i class="ph ph-warning"></i>
+                    Clear all slots?</span>
+                <button type="button" class="btn btn-danger" id="clear-confirm-yes"
+                    style="padding:4px 12px; font-size:12px;">Yes, Clear</button>
+                <button type="button" class="btn btn-outline" id="clear-confirm-no"
+                    style="padding:4px 12px; font-size:12px;">Cancel</button>
             </div>
         </div>
     </div>
@@ -332,9 +349,12 @@
             </div>
             <div class="save-modal-body">
                 <label class="filter-label" for="build-name-input">Build Name</label>
-                <input type="text" id="build-name-input" class="build-name-input" placeholder="e.g. 5" Racing Freestyle Build" maxlength="80">
-                <label class="filter-label" style="margin-top:12px;" for="build-desc-input">Description <span style="font-weight:400;text-transform:none;">(optional)</span></label>
-                <input type="text" id="build-desc-input" class="build-name-input" placeholder="Notes about this build..." maxlength="200">
+                <input type="text" id="build-name-input" class="build-name-input" placeholder="e.g. 5" Racing Freestyle
+                    Build" maxlength="80">
+                <label class="filter-label" style="margin-top:12px;" for="build-desc-input">Description <span
+                        style="font-weight:400;text-transform:none;">(optional)</span></label>
+                <input type="text" id="build-desc-input" class="build-name-input"
+                    placeholder="Notes about this build..." maxlength="200">
                 <div id="save-build-summary" class="save-build-summary"></div>
             </div>
             <div class="save-modal-footer">
@@ -351,14 +371,17 @@
         <div class="modal-content glass-panel" style="max-width: 560px;">
             <button class="modal-close" id="load-build-close-btn"><i class="ph ph-x"></i></button>
             <div class="save-modal-header">
-                <div class="save-modal-icon" style="background: var(--accent-blue);"><i class="ph-fill ph-folder-open"></i></div>
+                <div class="save-modal-icon" style="background: var(--accent-blue);"><i
+                        class="ph-fill ph-folder-open"></i></div>
                 <div>
                     <h2>Saved Builds</h2>
                     <p>Load a previously saved configuration.</p>
                 </div>
             </div>
             <div id="saved-builds-list" class="saved-builds-list">
-                <div class="saved-builds-empty"><i class="ph ph-archive"></i><p>No saved builds yet.</p></div>
+                <div class="saved-builds-empty"><i class="ph ph-archive"></i>
+                    <p>No saved builds yet.</p>
+                </div>
             </div>
         </div>
     </div>

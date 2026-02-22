@@ -73,3 +73,37 @@ We have recently completed "Tier 1 + Tier 2" UI regressions and bug fixes. The a
    python manage.py runserver 8000
    ```
    *Navigate to `http://127.0.0.1:8000/` to launch the Model Builder, or view the other tabs in the sidebar.*
+
+
+## UI Standards
+
+#### Topbar Navigation Standard
+To maintain visual consistency, all core pages MUST use the following flexbox structural standard for the <header class="topbar">. The mobile toggle and page title reside on the left, while tools and toggles reside on the right.
+
+`html
+<header class="topbar">
+    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="mobile-nav-toggle" id="mobile-nav-toggle" style="display:none; background:none; border:none; cursor:pointer; color:var(--text-main);">
+                <i class="ph ph-list" style="font-size:28px;"></i>
+            </button>
+            <h1 class="page-title">Page Title</h1>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <!-- Page Specific Tools (Search, Buttons, etc) Go Here -->
+            
+            <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
+            
+            <!-- Global Theme Toggles Go Here -->
+            <button class="dark-mode-toggle" id="dark-mode-toggle">
+                <i class="ph ph-moon" id="dark-mode-icon"></i>
+            </button>
+            <button class="dark-mode-toggle" id="shortcuts-help-btn">
+                <i class="ph ph-keyboard"></i>
+            </button>
+        </div>
+    </div>
+</header>
+`
+

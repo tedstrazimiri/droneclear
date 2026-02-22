@@ -8,7 +8,8 @@
     <title>Parts Library Editor — DroneClear</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{% static 'base.css' %}">
     <link rel="stylesheet" href="{% static 'layout.css' %}">
     <link rel="stylesheet" href="{% static 'components.css' %}">
@@ -27,11 +28,6 @@
 <body>
     <div class="app-container">
 
-        <!-- Mobile Nav Toggle -->
-        <button class="mobile-nav-toggle" id="mobile-nav-toggle" style="display:none;">
-            <i class="ph ph-list" style="font-size:24px;"></i>
-        </button>
-
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -44,7 +40,8 @@
                 </div>
 
                 <div class="sidebar-meta">
-                    <span class="sidebar-meta-version">v1.0.0 | Build 26 | <span id="total-parts-count">0 Parts</span></span>
+                    <span class="sidebar-meta-version">v1.0.0 | Build 26 | <span id="total-parts-count">0
+                            Parts</span></span>
                     <div class="lang-toggle">
                         <button id="btn-lang-en" class="lang-btn active-lang">EN</button>
                         <button id="btn-lang-fr" class="lang-btn">FR</button>
@@ -75,23 +72,38 @@
         <main class="main-content">
 
             <header class="topbar">
-                <h1 class="page-title" id="editor-title">Select a Category</h1>
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button class="mobile-nav-toggle" id="mobile-nav-toggle"
+                            style="display:none; background:none; border:none; cursor:pointer; color:var(--text-main);">
+                            <i class="ph ph-list" style="font-size:28px;"></i>
+                        </button>
+                        <h1 class="page-title" id="editor-title">Select a Category</h1>
+                    </div>
 
-                <div class="search-bar" title="Search across component tags, names, or PIDs">
-                    <i class="ph ph-magnifying-glass search-icon"></i>
-                    <input type="text" id="search-input" placeholder="Search components...">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div class="search-bar" title="Search across component tags, names, or PIDs">
+                            <i class="ph ph-magnifying-glass search-icon"></i>
+                            <input type="text" id="search-input" placeholder="Search components...">
+                        </div>
+
+                        <button class="btn btn-primary hidden" id="btn-create-topbar"
+                            style="padding: 7px 14px; font-size: 13px; white-space: nowrap;">
+                            <i class="ph ph-plus"></i> New Part
+                        </button>
+
+                        <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
+
+                        <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode"
+                            aria-label="Toggle dark mode">
+                            <i class="ph ph-moon" id="dark-mode-icon"></i>
+                        </button>
+                        <button class="dark-mode-toggle" id="shortcuts-help-btn" title="Keyboard shortcuts (?)"
+                            aria-label="Show keyboard shortcuts">
+                            <i class="ph ph-keyboard"></i>
+                        </button>
+                    </div>
                 </div>
-
-                <button class="btn btn-primary hidden" id="btn-create-topbar" style="padding: 7px 14px; font-size: 13px; white-space: nowrap;">
-                    <i class="ph ph-plus"></i> New Part
-                </button>
-
-                <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
-                    <i class="ph ph-moon" id="dark-mode-icon"></i>
-                </button>
-                <button class="dark-mode-toggle" id="shortcuts-help-btn" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
-                    <i class="ph ph-keyboard"></i>
-                </button>
             </header>
 
             <!-- Loader -->
@@ -110,154 +122,175 @@
                 <!-- Split layout: left = item list, right = form panels -->
                 <div class="editor-split">
 
-                <!-- Left column: item list -->
-                <div class="editor-split-list">
-                    <div id="editor-items-list" class="editor-items-list"></div>
-                </div>
+                    <!-- Left column: item list -->
+                    <div class="editor-split-list">
+                        <div id="editor-items-list" class="editor-items-list"></div>
+                    </div>
 
-                <!-- Right column: form panels -->
-                <div class="editor-split-form">
+                    <!-- Right column: form panels -->
+                    <div class="editor-split-form">
 
-                <!-- Component form panel -->
-                <div class="glass-panel hidden editor-panel" id="item-form-container">
-                    <h2 id="form-title" class="editor-panel-title">Create New Part</h2>
-                    <form id="component-form" class="editor-form">
+                        <!-- Component form panel -->
+                        <div class="glass-panel hidden editor-panel" id="item-form-container">
+                            <h2 id="form-title" class="editor-panel-title">Create New Part</h2>
+                            <form id="component-form" class="editor-form">
 
-                        <div class="form-group">
-                            <label class="form-label">PID</label>
-                            <input class="form-input" type="text" id="field-pid" required placeholder="e.g. MTR-0002">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Name</label>
-                            <input class="form-input" type="text" id="field-name" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Manufacturer</label>
-                            <input class="form-input" type="text" id="field-mfg" placeholder="e.g. iFlight">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Approx Price</label>
-                            <input class="form-input" type="text" id="field-price" placeholder="$0.00">
-                        </div>
-                        <div class="form-group form-group--full">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-input form-textarea" id="field-desc" rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Thumbnail Image URL</label>
-                            <input class="form-input" type="text" id="field-image" placeholder="https://example.com/image.jpg">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Manual / PDF Link</label>
-                            <input class="form-input" type="text" id="field-manual" placeholder="https://example.com/manual.pdf">
-                        </div>
-
-                        <!-- Dynamic schema fields -->
-                        <details class="form-section form-collapsible" id="dynamic-fields-container" open>
-                            <summary class="form-section-title"><i class="ph ph-sliders"></i> Schema Attributes</summary>
-                            <div class="editor-form" id="dynamic-fields-grid"></div>
-                        </details>
-
-                        <!-- Compatibility rules -->
-                        <details class="form-section form-collapsible hidden" id="compatibility-section">
-                            <summary class="form-section-title"><i class="ph ph-link"></i> Compatibility Rules</summary>
-                            <p class="form-section-hint">Define strict physical constraints for the Build Engine.</p>
-                            <div class="editor-form compat-grid" id="compatibility-fields-grid"></div>
-                        </details>
-
-                        <div class="form-actions">
-                            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                                <button type="button" class="btn btn-danger hidden" id="btn-delete">
-                                    <i class="ph ph-trash"></i> Delete
-                                </button>
-                                <!-- Inline delete confirmation — replaces browser confirm() -->
-                                <div id="delete-confirm-bar" class="hidden" style="display:flex; align-items:center; gap:8px; background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.3); border-radius:var(--radius-sm); padding:6px 12px;">
-                                    <span style="font-size:13px; color:#dc2626; font-weight:600;"><i class="ph ph-warning"></i> Permanently delete?</span>
-                                    <button type="button" class="btn btn-danger" id="btn-delete-confirm" style="padding:4px 12px; font-size:12px;">
-                                        <i class="ph ph-trash"></i> Yes, Delete
-                                    </button>
-                                    <button type="button" class="btn btn-outline" id="btn-delete-abort" style="padding:4px 12px; font-size:12px;">
-                                        Cancel
-                                    </button>
+                                <div class="form-group">
+                                    <label class="form-label">PID</label>
+                                    <input class="form-input" type="text" id="field-pid" required
+                                        placeholder="e.g. MTR-0002">
                                 </div>
-                            </div>
-                            <div class="form-actions-right">
-                                <button type="button" class="btn btn-outline" id="btn-cancel">Cancel</button>
-                                <button type="submit" class="btn btn-primary" id="btn-save">
-                                    <i class="ph ph-floppy-disk"></i> Save to Database
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Drone model form panel -->
-                <div class="glass-panel hidden editor-panel" id="drone-form-container">
-                    <h2 id="drone-form-title" class="editor-panel-title">Create New Drone Model</h2>
-                    <form id="drone-form" class="editor-form">
-
-                        <div class="form-group">
-                            <label class="form-label">Model PID</label>
-                            <input class="form-input" type="text" id="df-pid" required placeholder="e.g. MDL-0001">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Name</label>
-                            <input class="form-input" type="text" id="df-name" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Vehicle Type</label>
-                            <input class="form-input" type="text" id="df-type" placeholder="e.g. quad">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Build Class</label>
-                            <input class="form-input" type="text" id="df-class" placeholder="e.g. 5inch_freestyle">
-                        </div>
-                        <div class="form-group form-group--full">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-input form-textarea" id="df-desc" rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Thumbnail Image URL</label>
-                            <input class="form-input" type="text" id="df-image" placeholder="https://example.com/image.jpg">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Manual / PDF Link</label>
-                            <input class="form-input" type="text" id="df-manual" placeholder="https://example.com/manual.pdf">
-                        </div>
-
-                        <div class="form-section form-group--full">
-                            <h3 class="form-section-title"><i class="ph ph-graph"></i> Component Relations</h3>
-                            <p class="form-section-hint">Map parts used in this build as JSON, e.g. <code class="inline-code">{"frames": [{"pid": "FRM-0001"}]}</code></p>
-                            <textarea class="form-input form-textarea code-editor" id="df-relations" rows="10"></textarea>
-                        </div>
-
-                        <div class="form-actions">
-                            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                                <button type="button" class="btn btn-danger hidden" id="btn-drone-delete">
-                                    <i class="ph ph-trash"></i> Delete
-                                </button>
-                                <!-- Inline drone delete confirmation -->
-                                <div id="drone-delete-confirm-bar" class="hidden" style="display:flex; align-items:center; gap:8px; background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.3); border-radius:var(--radius-sm); padding:6px 12px;">
-                                    <span style="font-size:13px; color:#dc2626; font-weight:600;"><i class="ph ph-warning"></i> Permanently delete?</span>
-                                    <button type="button" class="btn btn-danger" id="btn-drone-delete-confirm" style="padding:4px 12px; font-size:12px;">
-                                        <i class="ph ph-trash"></i> Yes, Delete
-                                    </button>
-                                    <button type="button" class="btn btn-outline" id="btn-drone-delete-abort" style="padding:4px 12px; font-size:12px;">
-                                        Cancel
-                                    </button>
+                                <div class="form-group">
+                                    <label class="form-label">Name</label>
+                                    <input class="form-input" type="text" id="field-name" required>
                                 </div>
-                            </div>
-                            <div class="form-actions-right">
-                                <button type="button" class="btn btn-outline" id="btn-drone-cancel">Cancel</button>
-                                <button type="submit" class="btn btn-primary" id="btn-drone-save">
-                                    <i class="ph ph-floppy-disk"></i> Save Drone Model
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div><!-- /#drone-form-container -->
+                                <div class="form-group">
+                                    <label class="form-label">Manufacturer</label>
+                                    <input class="form-input" type="text" id="field-mfg" placeholder="e.g. iFlight">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Approx Price</label>
+                                    <input class="form-input" type="text" id="field-price" placeholder="$0.00">
+                                </div>
+                                <div class="form-group form-group--full">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-input form-textarea" id="field-desc" rows="3"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Thumbnail Image URL</label>
+                                    <input class="form-input" type="text" id="field-image"
+                                        placeholder="https://example.com/image.jpg">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Manual / PDF Link</label>
+                                    <input class="form-input" type="text" id="field-manual"
+                                        placeholder="https://example.com/manual.pdf">
+                                </div>
 
-                </div><!-- /.editor-split-form -->
+                                <!-- Dynamic schema fields -->
+                                <details class="form-section form-collapsible" id="dynamic-fields-container" open>
+                                    <summary class="form-section-title"><i class="ph ph-sliders"></i> Schema Attributes
+                                    </summary>
+                                    <div class="editor-form" id="dynamic-fields-grid"></div>
+                                </details>
+
+                                <!-- Compatibility rules -->
+                                <details class="form-section form-collapsible hidden" id="compatibility-section">
+                                    <summary class="form-section-title"><i class="ph ph-link"></i> Compatibility Rules
+                                    </summary>
+                                    <p class="form-section-hint">Define strict physical constraints for the Build
+                                        Engine.</p>
+                                    <div class="editor-form compat-grid" id="compatibility-fields-grid"></div>
+                                </details>
+
+                                <div class="form-actions">
+                                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                                        <button type="button" class="btn btn-danger hidden" id="btn-delete">
+                                            <i class="ph ph-trash"></i> Delete
+                                        </button>
+                                        <!-- Inline delete confirmation — replaces browser confirm() -->
+                                        <div id="delete-confirm-bar" class="hidden"
+                                            style="display:flex; align-items:center; gap:8px; background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.3); border-radius:var(--radius-sm); padding:6px 12px;">
+                                            <span style="font-size:13px; color:#dc2626; font-weight:600;"><i
+                                                    class="ph ph-warning"></i> Permanently delete?</span>
+                                            <button type="button" class="btn btn-danger" id="btn-delete-confirm"
+                                                style="padding:4px 12px; font-size:12px;">
+                                                <i class="ph ph-trash"></i> Yes, Delete
+                                            </button>
+                                            <button type="button" class="btn btn-outline" id="btn-delete-abort"
+                                                style="padding:4px 12px; font-size:12px;">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="form-actions-right">
+                                        <button type="button" class="btn btn-outline" id="btn-cancel">Cancel</button>
+                                        <button type="submit" class="btn btn-primary" id="btn-save">
+                                            <i class="ph ph-floppy-disk"></i> Save to Database
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Drone model form panel -->
+                        <div class="glass-panel hidden editor-panel" id="drone-form-container">
+                            <h2 id="drone-form-title" class="editor-panel-title">Create New Drone Model</h2>
+                            <form id="drone-form" class="editor-form">
+
+                                <div class="form-group">
+                                    <label class="form-label">Model PID</label>
+                                    <input class="form-input" type="text" id="df-pid" required
+                                        placeholder="e.g. MDL-0001">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Name</label>
+                                    <input class="form-input" type="text" id="df-name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Vehicle Type</label>
+                                    <input class="form-input" type="text" id="df-type" placeholder="e.g. quad">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Build Class</label>
+                                    <input class="form-input" type="text" id="df-class"
+                                        placeholder="e.g. 5inch_freestyle">
+                                </div>
+                                <div class="form-group form-group--full">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-input form-textarea" id="df-desc" rows="3"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Thumbnail Image URL</label>
+                                    <input class="form-input" type="text" id="df-image"
+                                        placeholder="https://example.com/image.jpg">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Manual / PDF Link</label>
+                                    <input class="form-input" type="text" id="df-manual"
+                                        placeholder="https://example.com/manual.pdf">
+                                </div>
+
+                                <div class="form-section form-group--full">
+                                    <h3 class="form-section-title"><i class="ph ph-graph"></i> Component Relations</h3>
+                                    <p class="form-section-hint">Map parts used in this build as JSON, e.g. <code
+                                            class="inline-code">{"frames": [{"pid": "FRM-0001"}]}</code></p>
+                                    <textarea class="form-input form-textarea code-editor" id="df-relations"
+                                        rows="10"></textarea>
+                                </div>
+
+                                <div class="form-actions">
+                                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                                        <button type="button" class="btn btn-danger hidden" id="btn-drone-delete">
+                                            <i class="ph ph-trash"></i> Delete
+                                        </button>
+                                        <!-- Inline drone delete confirmation -->
+                                        <div id="drone-delete-confirm-bar" class="hidden"
+                                            style="display:flex; align-items:center; gap:8px; background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.3); border-radius:var(--radius-sm); padding:6px 12px;">
+                                            <span style="font-size:13px; color:#dc2626; font-weight:600;"><i
+                                                    class="ph ph-warning"></i> Permanently delete?</span>
+                                            <button type="button" class="btn btn-danger" id="btn-drone-delete-confirm"
+                                                style="padding:4px 12px; font-size:12px;">
+                                                <i class="ph ph-trash"></i> Yes, Delete
+                                            </button>
+                                            <button type="button" class="btn btn-outline" id="btn-drone-delete-abort"
+                                                style="padding:4px 12px; font-size:12px;">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="form-actions-right">
+                                        <button type="button" class="btn btn-outline"
+                                            id="btn-drone-cancel">Cancel</button>
+                                        <button type="submit" class="btn btn-primary" id="btn-drone-save">
+                                            <i class="ph ph-floppy-disk"></i> Save Drone Model
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div><!-- /#drone-form-container -->
+
+                    </div><!-- /.editor-split-form -->
                 </div><!-- /.editor-split -->
 
             </div><!-- /#editor-workspace -->
