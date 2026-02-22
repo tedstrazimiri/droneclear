@@ -37,16 +37,16 @@ schema_lock = threading.Lock()
 
 class SchemaView(APIView):
     """
-    API endpoint to read and write the master drone_parts_schema_v2.json file.
+    API endpoint to read and write the master drone_parts_schema_v3.json file.
     """
     def get_schema_path(self):
-        return os.path.join(settings.BASE_DIR, 'drone_parts_schema_v2.json')
+        return os.path.join(settings.BASE_DIR, 'drone_parts_schema_v3.json')
 
     def get(self, request):
         schema_path = self.get_schema_path()
         if not os.path.exists(schema_path):
             return Response({"error": "Schema file not found."}, status=status.HTTP_404_NOT_FOUND)
-            
+
         with schema_lock:
             try:
                 with open(schema_path, 'r', encoding='utf-8') as f:
@@ -58,11 +58,31 @@ class SchemaView(APIView):
     def post(self, request):
         schema_path = self.get_schema_path()
         new_schema = request.data
-        
+
+        # Validate basic schema structure before saving
+        errors = []
+        if not isinstance(new_schema, dict):
+            errors.append("Schema must be a JSON object.")
+        else:
+            if 'schema_version' not in new_schema:
+                errors.append("Missing 'schema_version' key.")
+            if 'components' not in new_schema:
+                errors.append("Missing 'components' key.")
+            elif not isinstance(new_schema['components'], dict):
+                errors.append("'components' must be an object.")
+            else:
+                for cat_name, cat_items in new_schema['components'].items():
+                    if not isinstance(cat_items, list):
+                        errors.append(f"Category '{cat_name}' must be an array.")
+                    elif len(cat_items) == 0:
+                        errors.append(f"Category '{cat_name}' must have at least one template entry.")
+        if errors:
+            return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+
         with schema_lock:
             try:
                 with open(schema_path, 'w', encoding='utf-8') as f:
-                    json.dump(new_schema, f, indent=4)
+                    json.dump(new_schema, f, indent=2)
                 return Response({"message": "Schema updated successfully."})
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -91,21 +111,114 @@ class BugReportView(APIView):
             title = request.data.get('title', 'Untitled Bug')
             description = request.data.get('description', '')
             logs = request.data.get('logs', '')
-            
+
             reports_dir = os.path.join(settings.BASE_DIR, 'bug_reports')
             os.makedirs(reports_dir, exist_ok=True)
-            
+
             timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f"bug_{timestamp}.txt"
             filepath = os.path.join(reports_dir, filename)
-            
+
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(f"Title: {title}\n")
                 f.write(f"Time: {timestamp}\n")
                 f.write(f"Description:\n{description}\n\n")
                 if logs:
                     f.write(f"Logs:\n{logs}\n")
-                    
+
             return Response({"status": "Bug report saved", "file": filename}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ImportPartsView(APIView):
+    """
+    POST /api/import/parts/
+    Accepts a JSON array of parts. Upserts by PID.
+    Returns { created: N, updated: N, errors: [...] }
+    """
+    def post(self, request):
+        parts = request.data
+        if not isinstance(parts, list):
+            return Response({"error": "Request body must be a JSON array of parts."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        created = 0
+        updated = 0
+        errors = []
+
+        for i, part in enumerate(parts):
+            pid = part.get('pid')
+            category_slug = part.get('category')
+            name = part.get('name')
+
+            if not pid or not category_slug or not name:
+                errors.append({"index": i, "pid": pid, "error": "Missing required field: pid, category, or name."})
+                continue
+
+            try:
+                category = Category.objects.get(slug=category_slug)
+            except Category.DoesNotExist:
+                errors.append({"index": i, "pid": pid, "error": f"Category '{category_slug}' not found."})
+                continue
+
+            # Extract core fields, everything else goes to schema_data
+            core_keys = {'pid', 'category', 'name', 'manufacturer', 'description',
+                         'link', 'approx_price', 'image_file', 'manual_link'}
+            schema_data = {k: v for k, v in part.items() if k not in core_keys}
+
+            defaults = {
+                'category': category,
+                'name': name,
+                'manufacturer': part.get('manufacturer', 'Unknown'),
+                'description': part.get('description', ''),
+                'link': part.get('link', ''),
+                'approx_price': part.get('approx_price', ''),
+                'image_file': part.get('image_file', ''),
+                'manual_link': part.get('manual_link', ''),
+                'schema_data': schema_data,
+            }
+
+            try:
+                obj, was_created = Component.objects.update_or_create(pid=pid, defaults=defaults)
+                if was_created:
+                    created += 1
+                else:
+                    updated += 1
+            except Exception as e:
+                errors.append({"index": i, "pid": pid, "error": str(e)})
+
+        return Response({"created": created, "updated": updated, "errors": errors},
+                        status=status.HTTP_200_OK)
+
+
+class ExportPartsView(APIView):
+    """
+    GET /api/export/parts/
+    Exports all parts (or ?category=slug) in re-importable JSON format.
+    """
+    def get(self, request):
+        category_slug = request.query_params.get('category', None)
+        queryset = Component.objects.select_related('category').all()
+        if category_slug:
+            queryset = queryset.filter(category__slug=category_slug)
+
+        parts = []
+        for comp in queryset:
+            part = {
+                'pid': comp.pid,
+                'category': comp.category.slug,
+                'name': comp.name,
+                'manufacturer': comp.manufacturer,
+                'description': comp.description,
+                'link': comp.link,
+                'approx_price': comp.approx_price,
+                'image_file': comp.image_file,
+                'manual_link': comp.manual_link,
+            }
+            # Merge schema_data fields at top level for flat import format
+            if comp.schema_data:
+                part.update(comp.schema_data)
+            parts.append(part)
+
+        return Response(parts, status=status.HTTP_200_OK)

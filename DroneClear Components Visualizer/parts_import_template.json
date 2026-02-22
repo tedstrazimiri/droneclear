@@ -1,0 +1,80 @@
+[
+  {
+    "_comment": "Each object in this array represents one component to import. Required fields: pid, category, name.",
+    "pid": "MTR-0002",
+    "category": "motors",
+    "name": "EMAX ECO II 2207 1900KV",
+    "manufacturer": "EMAX",
+    "description": "Budget-friendly 2207 motor for 5-inch freestyle builds",
+    "link": "https://example.com/emax-eco2",
+    "approx_price": "$14.99",
+    "image_file": "component_images/emax-eco2.png",
+
+    "stator_size": "2207",
+    "stator_diameter_mm": 22,
+    "stator_height_mm": 7,
+    "kv_rating": 1900,
+    "cell_count_min": 4,
+    "cell_count_max": 6,
+    "voltage_min_v": 14.8,
+    "voltage_max_v": 25.2,
+    "max_continuous_current_a": 28,
+    "max_burst_current_a": 38,
+    "shaft_diameter_mm": 5,
+    "motor_mount_hole_spacing_mm": 16,
+    "motor_mount_bolt_size": "M3",
+    "weight_g": 33,
+    "tags": ["5inch", "freestyle", "6S", "2207", "budget"],
+
+    "compatibility": {
+      "cell_count_min": 4,
+      "cell_count_max": 6,
+      "prop_size_min_in": 4.5,
+      "prop_size_max_in": 5.5,
+      "motor_mount_bolt_size": "M3",
+      "motor_mount_hole_spacing_mm": 16,
+      "min_esc_current_per_motor_a": 28,
+      "_compat_hard": ["motor_mount_bolt_size", "motor_mount_hole_spacing_mm"],
+      "_compat_soft": ["cell_count_min", "cell_count_max", "prop_size_min_in", "prop_size_max_in", "min_esc_current_per_motor_a"]
+    }
+  },
+  {
+    "_comment": "Second example: a frame component",
+    "pid": "FRM-0002",
+    "category": "frames",
+    "name": "iFlight Nazgul5 V3 Frame",
+    "manufacturer": "iFlight",
+    "description": "5-inch freestyle frame with true-X geometry",
+    "link": "https://example.com/nazgul5-v3",
+    "approx_price": "$39.99",
+    "image_file": "component_images/nazgul5-v3.png",
+
+    "vehicle_type": "quad",
+    "prop_size_in": 5,
+    "wheelbase_mm": 227,
+    "motor_count": 4,
+    "arm_configuration": "true-X",
+    "material": ["carbon_fiber"],
+    "arm_thickness_mm": 5,
+    "fc_mounting_patterns_mm": [20, 25.5, 30.5],
+    "motor_mount_bolt_size": "M3",
+    "prop_size_min_in": 5.0,
+    "prop_size_max_in": 5.1,
+    "camera_mount_size": "micro",
+    "battery_position": "bottom",
+    "weight_g": 125,
+    "tags": ["5inch", "freestyle", "carbon", "true-X"],
+
+    "compatibility": {
+      "prop_size_min_in": 5.0,
+      "prop_size_max_in": 5.1,
+      "fc_mounting_patterns_mm": [20, 25.5, 30.5],
+      "motor_mount_bolt_size": "M3",
+      "motor_mount_hole_spacing_mm": 16,
+      "camera_mount_width_mm": 22,
+      "battery_strap_width_mm": 20,
+      "_compat_hard": ["fc_mounting_patterns_mm", "motor_mount_bolt_size", "motor_mount_hole_spacing_mm"],
+      "_compat_soft": ["prop_size_min_in", "prop_size_max_in", "camera_mount_width_mm", "battery_strap_width_mm"]
+    }
+  }
+]

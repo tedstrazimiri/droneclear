@@ -166,49 +166,63 @@ function updateBuildBadge() {
 }
 
 // --- Constraint Validation ---
+// Reads _compat_hard/_compat_soft from compatibility blocks to determine severity.
+// Hard constraint violation = 'error', soft = 'warning'.
+function getConstraintSeverity(comp, fieldName) {
+    const compat = comp?.schema_data?.compatibility;
+    if (!compat) return 'warning';
+    if (compat._compat_hard?.includes(fieldName)) return 'error';
+    if (compat._compat_soft?.includes(fieldName)) return 'warning';
+    return 'warning';
+}
+
 function getBuildWarnings(buildState) {
     const warnings = [];
     const { frames: frame, propellers: props, flight_controllers: fc, motors, escs: esc, batteries: bat } = buildState;
 
+    // 1. Propeller size vs frame max
     if (frame && props) {
-        const frameMax = parseFloat(frame.schema_data?.max_prop_size_in);
-        const propSize = parseFloat(props.schema_data?.prop_size_in);
+        const frameMax = parseFloat(frame.schema_data?.compatibility?.prop_size_max_in);
+        const propSize = parseFloat(props.schema_data?.diameter_in);
         if (frameMax && propSize && propSize > frameMax) {
-            warnings.push({ type: 'error', title: 'Propeller Size Exceeds Frame Limits', message: `The frame supports up to ${frameMax}" props, but you selected ${propSize}" propellers.` });
+            warnings.push({ type: getConstraintSeverity(frame, 'prop_size_max_in'), title: 'Propeller Size Exceeds Frame Limits', message: `The frame supports up to ${frameMax}" props, but you selected ${propSize}" propellers.` });
         }
     }
 
+    // 2. FC mounting pattern vs frame
     if (frame && fc) {
-        const frameMounts = frame.schema_data?.fc_mounting_patterns_mm || [];
-        const fcMount = fc.schema_data?.bolt_pattern_mm;
+        const frameMounts = frame.schema_data?.compatibility?.fc_mounting_patterns_mm || [];
+        const fcMount = parseFloat(fc.schema_data?.mounting_pattern_mm);
         if (fcMount && frameMounts.length > 0 && !frameMounts.includes(fcMount)) {
-            warnings.push({ type: 'error', title: 'Flight Controller Mount Mismatch', message: `The ${fcMount} FC will not bolt onto this frame, which only supports: ${frameMounts.join(', ')}.` });
+            warnings.push({ type: getConstraintSeverity(frame, 'fc_mounting_patterns_mm'), title: 'Flight Controller Mount Mismatch', message: `The ${fcMount}mm FC will not bolt onto this frame, which only supports: ${frameMounts.join(', ')}mm.` });
         }
     }
 
+    // 3. Motor mount pattern vs frame
     if (frame && motors) {
-        const frameMounts  = frame.schema_data?.motor_mounting_patterns_mm || [];
-        const motorMount   = motors.schema_data?.compatibility?.motor_mount_hole_spacing_mm;
-        if (motorMount && frameMounts.length > 0 && !frameMounts.includes(motorMount)) {
-            warnings.push({ type: 'error', title: 'Motor Mount Mismatch', message: `These motors use a ${motorMount} pattern. The frame supports: ${frameMounts.join(', ')}.` });
+        const frameMotorSpacing = parseFloat(frame.schema_data?.compatibility?.motor_mount_hole_spacing_mm);
+        const motorMount = parseFloat(motors.schema_data?.compatibility?.motor_mount_hole_spacing_mm);
+        if (frameMotorSpacing && motorMount && frameMotorSpacing !== motorMount) {
+            warnings.push({ type: getConstraintSeverity(frame, 'motor_mount_hole_spacing_mm'), title: 'Motor Mount Mismatch', message: `These motors use ${motorMount}mm spacing. The frame uses ${frameMotorSpacing}mm.` });
         }
     }
 
+    // 4-5. Battery cell count vs motors and ESC
     if (bat) {
-        const batCells = parseInt(bat.schema_data?.cell_count_s);
+        const batCells = parseInt(bat.schema_data?.cell_count);
         if (batCells && motors) {
             const motorMax = parseInt(motors.schema_data?.compatibility?.cell_count_max);
             if (motorMax && batCells > motorMax) {
-                warnings.push({ type: 'warning', title: 'Battery Voltage High for Motors', message: `These motors are rated for up to ${motorMax}S, but you chose a ${batCells}S battery.` });
+                warnings.push({ type: getConstraintSeverity(motors, 'cell_count_max'), title: 'Battery Voltage High for Motors', message: `These motors are rated for up to ${motorMax}S, but you chose a ${batCells}S battery.` });
             }
         }
         if (batCells && esc) {
             const escMax = parseInt(esc.schema_data?.compatibility?.cell_count_max);
             const escMin = parseInt(esc.schema_data?.compatibility?.cell_count_min);
             if (escMax && batCells > escMax) {
-                warnings.push({ type: 'error', title: 'ESC Overvoltage Risk', message: `The ESC max rating is ${escMax}S. A ${batCells}S battery will likely fry it.` });
+                warnings.push({ type: getConstraintSeverity(esc, 'cell_count_max'), title: 'ESC Overvoltage Risk', message: `The ESC max rating is ${escMax}S. A ${batCells}S battery will likely fry it.` });
             } else if (escMin && batCells < escMin) {
-                warnings.push({ type: 'warning', title: 'Low Battery Voltage', message: `The ESC expects at least ${escMin}S. A ${batCells}S battery may not power it properly.` });
+                warnings.push({ type: getConstraintSeverity(esc, 'cell_count_min'), title: 'Low Battery Voltage', message: `The ESC expects at least ${escMin}S. A ${batCells}S battery may not power it properly.` });
             }
         }
     }

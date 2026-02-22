@@ -10,6 +10,8 @@ router.register(r'drone-models', views.DroneModelViewSet, basename='dronemodel')
 urlpatterns = [
     path('api/', include(router.urls)),
     path('api/schema/', views.SchemaView.as_view(), name='schema-view'),
+    path('api/import/parts/', views.ImportPartsView.as_view(), name='import-parts'),
+    path('api/export/parts/', views.ExportPartsView.as_view(), name='export-parts'),
     path('api/maintenance/restart/', views.RestartServerView.as_view(), name='restart-server'),
     path('api/maintenance/bug-report/', views.BugReportView.as_view(), name='bug-report'),
 ]
