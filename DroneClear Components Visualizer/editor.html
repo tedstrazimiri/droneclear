@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'style.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'style.css' %}?v=5">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script>
         // Apply saved theme before paint to avoid flash
@@ -78,6 +78,10 @@
                     <i class="ph ph-magnifying-glass search-icon"></i>
                     <input type="text" id="search-input" placeholder="Search components...">
                 </div>
+
+                <button class="btn btn-primary hidden" id="btn-create-topbar" style="padding: 7px 14px; font-size: 13px; white-space: nowrap;">
+                    <i class="ph ph-plus"></i> New Part
+                </button>
 
                 <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
                     <i class="ph ph-moon" id="dark-mode-icon"></i>
@@ -151,10 +155,20 @@
                         </div>
 
                         <div class="form-actions">
-                            <div>
+                            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                                 <button type="button" class="btn btn-danger hidden" id="btn-delete">
                                     <i class="ph ph-trash"></i> Delete
                                 </button>
+                                <!-- Inline delete confirmation — replaces browser confirm() -->
+                                <div id="delete-confirm-bar" class="hidden" style="display:flex; align-items:center; gap:8px; background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.3); border-radius:var(--radius-sm); padding:6px 12px;">
+                                    <span style="font-size:13px; color:#dc2626; font-weight:600;"><i class="ph ph-warning"></i> Permanently delete?</span>
+                                    <button type="button" class="btn btn-danger" id="btn-delete-confirm" style="padding:4px 12px; font-size:12px;">
+                                        <i class="ph ph-trash"></i> Yes, Delete
+                                    </button>
+                                    <button type="button" class="btn btn-outline" id="btn-delete-abort" style="padding:4px 12px; font-size:12px;">
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                             <div class="form-actions-right">
                                 <button type="button" class="btn btn-outline" id="btn-cancel">Cancel</button>
@@ -207,10 +221,20 @@
                         </div>
 
                         <div class="form-actions">
-                            <div>
+                            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                                 <button type="button" class="btn btn-danger hidden" id="btn-drone-delete">
                                     <i class="ph ph-trash"></i> Delete
                                 </button>
+                                <!-- Inline drone delete confirmation -->
+                                <div id="drone-delete-confirm-bar" class="hidden" style="display:flex; align-items:center; gap:8px; background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.3); border-radius:var(--radius-sm); padding:6px 12px;">
+                                    <span style="font-size:13px; color:#dc2626; font-weight:600;"><i class="ph ph-warning"></i> Permanently delete?</span>
+                                    <button type="button" class="btn btn-danger" id="btn-drone-delete-confirm" style="padding:4px 12px; font-size:12px;">
+                                        <i class="ph ph-trash"></i> Yes, Delete
+                                    </button>
+                                    <button type="button" class="btn btn-outline" id="btn-drone-delete-abort" style="padding:4px 12px; font-size:12px;">
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                             <div class="form-actions-right">
                                 <button type="button" class="btn btn-outline" id="btn-drone-cancel">Cancel</button>
@@ -230,7 +254,7 @@
         <i class="ph ph-plus"></i> Create New
     </button>
 
-    <script src="{% static 'editor.js' %}?v=4"></script>
+    <script src="{% static 'editor.js' %}?v=5"></script>
     <script>
         (function () {
             function applyTheme(dark) {

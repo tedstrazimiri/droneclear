@@ -1,6 +1,39 @@
+// =============================================================
+// editor.js — Parts Library Editor logic
+// v5 — Functional fixes:
+//   - Schema now loaded from /api/schema/ (live, not static file)
+//   - showToast() self-contained (no dependency on utils.js/state.js)
+//   - Save/delete give toast feedback instead of silent reload
+//   - Delete uses inline confirmation UI instead of browser confirm()
+//   - btnDelete uses .hidden class consistently
+//   - btnDroneDelete uses .hidden class consistently
+//   - "Create New" button added to topbar (in addition to FAB)
+// =============================================================
+
 let schemaTemplate = {};
 let currentCategory = null;
 let editingComponent = null;
+let editorToastTimer = null;
+
+// --- Self-contained toast (editor.js has no access to utils.js globals) ---
+function showToast(message, type = 'info') {
+    let toast = document.getElementById('app-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'app-toast';
+        document.body.appendChild(toast);
+    }
+    const icons = {
+        success: 'ph-check-circle',
+        error: 'ph-warning-circle',
+        warning: 'ph-warning',
+        info: 'ph-info'
+    };
+    toast.className = `app-toast app-toast--${type} show`;
+    toast.innerHTML = `<i class="ph-fill ${icons[type] || 'ph-info'}"></i><span>${message}</span>`;
+    clearTimeout(editorToastTimer);
+    editorToastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
+}
 
 const elements = {
     nav: document.getElementById('editor-nav'),
@@ -13,6 +46,7 @@ const elements = {
     form: document.getElementById('component-form'),
     formTitle: document.getElementById('form-title'),
     btnCreate: document.getElementById('btn-create-new'),
+    btnCreateTopbar: document.getElementById('btn-create-topbar'),
     btnCancel: document.getElementById('btn-cancel'),
     dynamicFieldsGrid: document.getElementById('dynamic-fields-grid'),
     compSection: document.getElementById('compatibility-section'),
@@ -27,6 +61,9 @@ const elements = {
     img: document.getElementById('field-image'),
     manual: document.getElementById('field-manual'),
     btnDelete: document.getElementById('btn-delete'),
+    deleteConfirmBar: document.getElementById('delete-confirm-bar'),
+    btnDeleteConfirm: document.getElementById('btn-delete-confirm'),
+    btnDeleteAbort: document.getElementById('btn-delete-abort'),
 
     // Drone Fields
     droneFormContainer: document.getElementById('drone-form-container'),
@@ -34,6 +71,9 @@ const elements = {
     droneFormTitle: document.getElementById('drone-form-title'),
     btnDroneCancel: document.getElementById('btn-drone-cancel'),
     btnDroneDelete: document.getElementById('btn-drone-delete'),
+    droneDeleteConfirmBar: document.getElementById('drone-delete-confirm-bar'),
+    btnDroneDeleteConfirm: document.getElementById('btn-drone-delete-confirm'),
+    btnDroneDeleteAbort: document.getElementById('btn-drone-delete-abort'),
     dfPid: document.getElementById('df-pid'),
     dfName: document.getElementById('df-name'),
     dfType: document.getElementById('df-type'),
@@ -52,41 +92,33 @@ async function initEditor() {
     elements.loader.style.display = 'flex';
 
     try {
-        // Fetch Master Schema for input generation
-        const schemaRes = await fetch('/static/drone_parts_schema_v2.json');
-        if (!schemaRes.ok) throw new Error("Could not load schema template.");
+        // Load schema from live API (not static file — keeps in sync with Master Attributes)
+        const schemaRes = await fetch('/api/schema/');
+        if (!schemaRes.ok) throw new Error("Could not load schema from API.");
         const schemaData = await schemaRes.json();
         schemaTemplate = schemaData.components;
 
-        // Fetch categories from API
         await fetchCategories();
 
-        // Intercept deep edit links
+        // Handle deep-link edit (e.g. /library/?edit_pid=FC-0001)
         const urlParams = new URLSearchParams(window.location.search);
         const editPid = urlParams.get('edit_pid');
         if (editPid) {
             await handleDeepEditLink(editPid);
         }
 
-        // Wire up search bar
         if (elements.searchInput) {
             elements.searchInput.addEventListener('input', (e) => {
                 const term = e.target.value.toLowerCase();
-                const cards = elements.itemsList.querySelectorAll('.item-row');
-                cards.forEach(card => {
-                    const text = card.textContent.toLowerCase();
-                    if (text.includes(term)) {
-                        card.style.display = 'flex';
-                    } else {
-                        card.style.display = 'none';
-                    }
+                elements.itemsList.querySelectorAll('.item-row').forEach(row => {
+                    row.style.display = row.textContent.toLowerCase().includes(term) ? 'flex' : 'none';
                 });
             });
         }
 
     } catch (e) {
         console.error("Failed to init editor", e);
-        alert("Failed to load editor data. Is the local Django server active at port 8080?");
+        showToast("Failed to load editor data. Is the Django server running?", 'error');
     } finally {
         elements.loader.style.display = 'none';
     }
@@ -96,17 +128,13 @@ async function handleDeepEditLink(pid) {
     try {
         const isDrone = pid.startsWith('DRN-');
         const url = isDrone ? `/api/drone-models/${pid}/` : `/api/components/${pid}/`;
-
         const res = await fetch(url);
         if (!res.ok) throw new Error("Component not found");
-
         const item = await res.json();
 
         if (isDrone) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            const dmNav = document.getElementById('nav-drone-models');
-            if (dmNav) dmNav.classList.add('active');
-
+            document.getElementById('nav-drone-models')?.classList.add('active');
             await loadDroneModels();
             openDroneForm(item);
         } else {
@@ -114,8 +142,6 @@ async function handleDeepEditLink(pid) {
             if (categoryObj) {
                 document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
                 categoryObj.classList.add('active');
-
-                // Get the text content for the title, fallback to slug
                 const catName = categoryObj.querySelector('span')?.textContent || item.category;
                 await loadCategory(item.category, catName);
             }
@@ -123,7 +149,7 @@ async function handleDeepEditLink(pid) {
         }
     } catch (e) {
         console.error("Deep link failed:", e);
-        alert("Could not load the requested component for editing.");
+        showToast("Could not load the requested component for editing.", 'error');
     }
 }
 
@@ -133,7 +159,7 @@ async function fetchCategories() {
 
     elements.nav.innerHTML = '';
 
-    // Add special Drone Models nav item
+    // Drone Models special nav item
     const dmNav = document.createElement('a');
     dmNav.className = 'nav-item';
     dmNav.id = 'nav-drone-models';
@@ -143,17 +169,16 @@ async function fetchCategories() {
         e.preventDefault();
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         dmNav.classList.add('active');
+        updateCreateBtn(true);
         loadDroneModels();
     };
     elements.nav.appendChild(dmNav);
 
     const sep = document.createElement('div');
-    sep.style.margin = "10px 0";
-    sep.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
+    sep.style.cssText = "margin:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);";
     elements.nav.appendChild(sep);
 
     let totalParts = 0;
-
     categories.forEach(cat => {
         totalParts += (cat.count || 0);
         const a = document.createElement('a');
@@ -166,14 +191,26 @@ async function fetchCategories() {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             a.classList.add('active');
             if (elements.searchInput) elements.searchInput.value = '';
+            updateCreateBtn(false);
             loadCategory(cat.slug, cat.name);
         };
         elements.nav.appendChild(a);
     });
 
     const partsCountEl = document.getElementById('total-parts-count');
-    if (partsCountEl) {
-        partsCountEl.textContent = `${totalParts} Parts`;
+    if (partsCountEl) partsCountEl.textContent = `${totalParts} Parts`;
+}
+
+// Keep FAB and topbar button in sync
+function updateCreateBtn(isDroneMode) {
+    const label = isDroneMode ? 'New Drone Model' : 'New Part';
+    if (elements.btnCreate) {
+        elements.btnCreate.innerHTML = `<i class="ph ph-plus"></i> ${label}`;
+        elements.btnCreate.classList.remove('hidden');
+    }
+    if (elements.btnCreateTopbar) {
+        elements.btnCreateTopbar.innerHTML = `<i class="ph ph-plus"></i> ${label}`;
+        elements.btnCreateTopbar.classList.remove('hidden');
     }
 }
 
@@ -182,8 +219,9 @@ async function loadCategory(slug, name) {
     elements.title.textContent = `Editing: ${name}`;
     elements.workspace.classList.remove('hidden');
     elements.formContainer.classList.add('hidden');
+    elements.droneFormContainer.classList.add('hidden');
 
-    elements.itemsList.innerHTML = '<div style="padding:20px; text-align:center; color: var(--text-main);">Loading items...</div>';
+    elements.itemsList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">Loading items...</div>';
 
     try {
         const res = await fetch(`/api/components/?category=${slug}`);
@@ -191,24 +229,16 @@ async function loadCategory(slug, name) {
 
         elements.itemsList.innerHTML = '';
         if (items.length === 0) {
-            elements.itemsList.innerHTML = '<p style="color:var(--text-muted)">No items in this category yet.</p>';
+            elements.itemsList.innerHTML = `
+                <div style="padding:40px;text-align:center;color:var(--text-muted);">
+                    <i class="ph ph-package" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.4;"></i>
+                    No parts in this category yet. Click <strong>New Part</strong> to add one.
+                </div>`;
         } else {
-            items.forEach(item => {
-                const row = document.createElement('div');
-                row.className = 'item-row';
-                row.innerHTML = `
-                    <div>
-                        <strong style="color:var(--text-main)">${item.pid}</strong>
-                        <span style="color:var(--text-muted); margin-left: 12px;">${item.name}</span>
-                    </div>
-                    <i class="ph ph-pencil-simple" style="color:var(--accent-blue);"></i>
-                `;
-                row.onclick = () => openForm(item);
-                elements.itemsList.appendChild(row);
-            });
+            items.forEach(item => renderItemRow(item, false));
         }
     } catch (e) {
-        elements.itemsList.innerHTML = '<p style="color:red">Failed to load items.</p>';
+        elements.itemsList.innerHTML = '<p style="color:var(--negative-red);padding:20px;">Failed to load items.</p>';
     }
 }
 
@@ -219,7 +249,7 @@ async function loadDroneModels() {
     elements.formContainer.classList.add('hidden');
     elements.droneFormContainer.classList.add('hidden');
 
-    elements.itemsList.innerHTML = '<div style="padding:20px; text-align:center; color: var(--text-main);">Loading items...</div>';
+    elements.itemsList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">Loading items...</div>';
 
     try {
         const res = await fetch(`/api/drone-models/`);
@@ -227,34 +257,46 @@ async function loadDroneModels() {
 
         elements.itemsList.innerHTML = '';
         if (items.length === 0) {
-            elements.itemsList.innerHTML = '<p style="color:var(--text-muted)">No drones created yet.</p>';
+            elements.itemsList.innerHTML = `
+                <div style="padding:40px;text-align:center;color:var(--text-muted);">
+                    <i class="ph ph-drone" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.4;"></i>
+                    No drone models yet. Click <strong>New Drone Model</strong> to add one.
+                </div>`;
         } else {
-            items.forEach(item => {
-                const row = document.createElement('div');
-                row.className = 'item-row';
-                row.innerHTML = `
-                    <div>
-                        <strong style="color:var(--text-main)">${item.pid}</strong>
-                        <span style="color:var(--text-muted); margin-left: 12px;">${item.name}</span>
-                    </div>
-                    <i class="ph ph-pencil-simple" style="color:var(--accent-blue);"></i>
-                `;
-                row.onclick = () => openDroneForm(item);
-                elements.itemsList.appendChild(row);
-            });
+            items.forEach(item => renderItemRow(item, true));
         }
     } catch (e) {
-        elements.itemsList.innerHTML = '<p style="color:red">Failed to load items.</p>';
+        elements.itemsList.innerHTML = '<p style="color:var(--negative-red);padding:20px;">Failed to load items.</p>';
     }
 }
 
-elements.btnCreate.onclick = () => {
+function renderItemRow(item, isDrone) {
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = `
+        <div>
+            <strong style="color:var(--text-main)">${item.pid}</strong>
+            <span style="color:var(--text-muted);margin-left:12px;">${item.name}</span>
+        </div>
+        <i class="ph ph-pencil-simple" style="color:var(--accent-blue);"></i>
+    `;
+    row.onclick = () => isDrone ? openDroneForm(item) : openForm(item);
+    elements.itemsList.appendChild(row);
+}
+
+// --- Create New wiring (both FAB and topbar button) ---
+function handleCreateNew() {
     if (currentCategory === '__DRONE_MODELS__') {
         openDroneForm();
-    } else {
+    } else if (currentCategory) {
         openForm();
+    } else {
+        showToast('Select a category first.', 'warning');
     }
-};
+}
+
+if (elements.btnCreate) elements.btnCreate.onclick = handleCreateNew;
+if (elements.btnCreateTopbar) elements.btnCreateTopbar.onclick = handleCreateNew;
 elements.btnCancel.onclick = () => elements.formContainer.classList.add('hidden');
 elements.btnDroneCancel.onclick = () => elements.droneFormContainer.classList.add('hidden');
 
@@ -262,6 +304,8 @@ function openForm(item = null) {
     editingComponent = item;
     elements.droneFormContainer.classList.add('hidden');
     elements.formContainer.classList.remove('hidden');
+    // Hide delete confirm bar whenever form opens
+    elements.deleteConfirmBar?.classList.add('hidden');
     elements.formContainer.scrollIntoView({ behavior: 'smooth' });
 
     if (item) {
@@ -274,9 +318,9 @@ function openForm(item = null) {
         elements.desc.value = item.description || '';
         elements.img.value = item.image_file || '';
         elements.manual.value = item.manual_link || '';
-        elements.btnDelete.style.display = 'block';
+        elements.btnDelete.classList.remove('hidden');
     } else {
-        elements.formTitle.textContent = `Create New ${currentCategory}`;
+        elements.formTitle.textContent = `Create New Part`;
         elements.pid.value = '';
         elements.pid.readOnly = false;
         elements.name.value = '';
@@ -285,10 +329,10 @@ function openForm(item = null) {
         elements.desc.value = '';
         elements.img.value = '';
         elements.manual.value = '';
-        elements.btnDelete.style.display = 'none';
+        elements.btnDelete.classList.add('hidden');
     }
 
-    generateDynamicFields(item ? item.schema_data : {});
+    generateDynamicFields(item ? (item.schema_data || {}) : {});
 }
 
 function generateDynamicFields(existingData) {
@@ -296,61 +340,49 @@ function generateDynamicFields(existingData) {
     elements.compGrid.innerHTML = '';
     elements.compSection.style.display = 'none';
 
-    // Get blueprint from master schema
-    const blueprint = schemaTemplate[currentCategory] ? schemaTemplate[currentCategory][0] : null;
+    const blueprint = schemaTemplate[currentCategory]?.[0] || null;
     if (!blueprint) {
-        elements.dynamicFieldsGrid.innerHTML = '<p style="color:var(--text-muted)">No schema definition found for this category in v2.</p>';
+        elements.dynamicFieldsGrid.innerHTML = '<p style="color:var(--text-muted)">No schema definition found for this category.</p>';
         return;
     }
 
     const ignoredKeys = ['pid', 'name', 'manufacturer', 'description', 'link', 'image_file', 'manual_link', 'compatibility', 'tags'];
 
     Object.keys(blueprint).forEach(key => {
-        if (ignoredKeys.includes(key)) return;
-        if (key.startsWith('_')) return; // Ignore notes
+        if (ignoredKeys.includes(key) || key.startsWith('_')) return;
 
-        // Try to find options for this field if it's a dropdown
-        let optionsStr = blueprint[`_${key}_options`] || null;
+        const optionsStr = blueprint[`_${key}_options`] || null;
         let valType = typeof blueprint[key];
-
-        // Handle explicit null defaults
-        if (blueprint[key] === null) {
-            valType = 'string';
-        }
+        if (blueprint[key] === null) valType = 'string';
 
         const wrapper = document.createElement('div');
         wrapper.className = 'form-group';
-
         const label = document.createElement('label');
-        // Prettify label (e.g., flight_controller -> Flight Controller)
         label.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         wrapper.appendChild(label);
 
-        let input = createInputForField(key, valType, optionsStr, existingData[key], blueprint[key]);
+        const input = createInputForField(key, valType, optionsStr, existingData[key], blueprint[key]);
         input.classList.add('dynamic-input');
         wrapper.appendChild(input);
         elements.dynamicFieldsGrid.appendChild(wrapper);
     });
 
-    // Generate Compatibility Fields
     if (blueprint.compatibility) {
         elements.compSection.style.display = 'block';
         const existingComp = existingData.compatibility || {};
-
         Object.keys(blueprint.compatibility).forEach(key => {
             const wrapper = document.createElement('div');
             wrapper.className = 'form-group';
-
             const label = document.createElement('label');
             label.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
             wrapper.appendChild(label);
 
-            let optionsStr = blueprint[`_${key}_options`] || null;
+            const optionsStr = blueprint[`_${key}_options`] || null;
             let valType = typeof blueprint.compatibility[key];
             if (blueprint.compatibility[key] === null) valType = 'string';
 
-            let input = createInputForField(key, valType, optionsStr, existingComp[key], blueprint.compatibility[key]);
-            input.classList.add('comp-input'); // Special class for collection
+            const input = createInputForField(key, valType, optionsStr, existingComp[key], blueprint.compatibility[key]);
+            input.classList.add('comp-input');
             wrapper.appendChild(input);
             elements.compGrid.appendChild(wrapper);
         });
@@ -362,112 +394,50 @@ function createInputForField(key, valType, optionsStr, existingVal, defaultVal) 
     if (optionsStr) {
         input = document.createElement('select');
         input.dataset.key = key;
-        const opts = optionsStr.split('|').map(o => o.trim());
-
         const emptyOpt = document.createElement('option');
         emptyOpt.value = '';
         emptyOpt.textContent = '-- Select --';
         input.appendChild(emptyOpt);
-
-        opts.forEach(opt => {
+        optionsStr.split('|').map(o => o.trim()).forEach(opt => {
             const o = document.createElement('option');
             o.value = opt;
             o.textContent = opt;
             input.appendChild(o);
         });
-
         if (existingVal !== undefined && existingVal !== null) input.value = existingVal;
-
     } else if (valType === 'boolean') {
         input = document.createElement('select');
         input.dataset.key = key;
         input.innerHTML = `<option value="">--</option><option value="true">True</option><option value="false">False</option>`;
-        if (existingVal !== undefined && existingVal !== null) {
-            input.value = existingVal ? "true" : "false";
-        }
+        if (existingVal !== undefined && existingVal !== null) input.value = existingVal ? 'true' : 'false';
     } else {
         input = document.createElement('input');
         input.type = valType === 'number' ? 'number' : 'text';
         if (valType === 'number') input.step = 'any';
         input.dataset.key = key;
         input.placeholder = `e.g. ${defaultVal === null ? '' : JSON.stringify(defaultVal)}`;
-
         if (existingVal !== undefined && existingVal !== null) {
-            if (Array.isArray(existingVal) || typeof existingVal === 'object') {
-                input.value = JSON.stringify(existingVal);
-            } else {
-                input.value = existingVal;
-            }
+            input.value = (Array.isArray(existingVal) || typeof existingVal === 'object')
+                ? JSON.stringify(existingVal)
+                : existingVal;
         }
     }
     return input;
 }
 
+// --- Component form submit ---
 elements.form.onsubmit = async (e) => {
     e.preventDefault();
-
-    const btn = elements.form.querySelector('#btn-save');
-    const originalText = btn.textContent;
-    btn.textContent = 'Saving...';
+    const btn = document.getElementById('btn-save');
+    btn.innerHTML = `<i class="ph ph-spinner ph-spin"></i> Saving...`;
     btn.disabled = true;
 
     try {
-        // Collect schema_data
-        const dynamicInputs = document.querySelectorAll('.dynamic-input');
-        const schema_data = {};
+        const schema_data = collectDynamicFields();
 
-        dynamicInputs.forEach(input => {
-            const key = input.dataset.key;
-            let val = input.value;
-
-            // Clean empty strings
-            if (val === '') return;
-
-            // Parse typings
-            if (input.tagName === 'SELECT') {
-                if (val === 'true') val = true;
-                else if (val === 'false') val = false;
-            } else if (input.type === 'number') {
-                val = Number(val);
-            } else if (input.type === 'text') {
-                try {
-                    // Try to parse arrays/objects like [4, 5] or {"width": 10}
-                    if (val.startsWith('[') || val.startsWith('{')) {
-                        val = JSON.parse(val);
-                    }
-                } catch (err) { } // Keep as string if it fails
-            }
-
-            schema_data[key] = val;
-        });
-
-        // Collect compatibility data
-        const compInputs = document.querySelectorAll('.comp-input');
-        if (compInputs.length > 0) {
-            const comp_data = {};
-            compInputs.forEach(input => {
-                const key = input.dataset.key;
-                let val = input.value;
-                if (val === '') return;
-
-                if (input.tagName === 'SELECT') {
-                    if (val === 'true') val = true;
-                    else if (val === 'false') val = false;
-                } else if (input.type === 'number') {
-                    val = Number(val);
-                } else if (input.type === 'text') {
-                    try {
-                        if (val.startsWith('[') || val.startsWith('{')) val = JSON.parse(val);
-                    } catch (err) { }
-                }
-                comp_data[key] = val;
-            });
-            schema_data['compatibility'] = comp_data;
-        }
-
-        // Keep tags if they exist
-        if (editingComponent && editingComponent.schema_data && editingComponent.schema_data.tags) {
-            schema_data['tags'] = editingComponent.schema_data.tags;
+        // Preserve existing tags
+        if (editingComponent?.schema_data?.tags) {
+            schema_data.tags = editingComponent.schema_data.tags;
         }
 
         const payload = {
@@ -479,63 +449,118 @@ elements.form.onsubmit = async (e) => {
             approx_price: elements.price.value.trim(),
             image_file: elements.img.value.trim(),
             manual_link: elements.manual.value.trim(),
-            schema_data: schema_data,
+            schema_data,
         };
 
-        let url = '/api/components/';
-        let method = 'POST';
-
-        if (editingComponent) {
-            url += `${editingComponent.pid}/`;
-            method = 'PUT';
-        }
+        const url = editingComponent ? `/api/components/${editingComponent.pid}/` : '/api/components/';
+        const method = editingComponent ? 'PUT' : 'POST';
 
         const res = await fetch(url, {
-            method: method,
+            method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(JSON.stringify(err));
-        }
+        if (!res.ok) throw new Error(JSON.stringify(await res.json()));
 
         elements.formContainer.classList.add('hidden');
-        await loadCategory(currentCategory, document.querySelector('.nav-item.active span').textContent);
+        const activeNavName = document.querySelector('.nav-item.active span')?.textContent || currentCategory;
+        await loadCategory(currentCategory, activeNavName);
+        showToast(editingComponent ? `${payload.pid} updated successfully.` : `${payload.pid} created.`, 'success');
 
     } catch (e) {
         console.error(e);
-        alert(`Error saving component:\n${e.message}`);
+        showToast(`Error saving: ${e.message}`, 'error');
     } finally {
-        btn.textContent = originalText;
+        btn.innerHTML = `<i class="ph ph-floppy-disk"></i> Save to Database`;
         btn.disabled = false;
     }
 };
 
-elements.btnDelete.onclick = async () => {
-    if (!editingComponent) return;
+function collectDynamicFields() {
+    const schema_data = {};
 
-    if (confirm(`Are you sure you want to permanently delete component ${editingComponent.pid}?`)) {
-        try {
-            const res = await fetch(`/api/components/${editingComponent.pid}/`, {
-                method: 'DELETE'
-            });
-            if (!res.ok) throw new Error("Delete failed");
-
-            elements.formContainer.classList.add('hidden');
-            await loadCategory(currentCategory, document.querySelector('.nav-item.active span').textContent);
-        } catch (e) {
-            console.error(e);
-            alert("Error deleting component.");
+    document.querySelectorAll('.dynamic-input').forEach(input => {
+        const key = input.dataset.key;
+        let val = input.value;
+        if (val === '') return;
+        if (input.tagName === 'SELECT') {
+            if (val === 'true') val = true;
+            else if (val === 'false') val = false;
+        } else if (input.type === 'number') {
+            val = Number(val);
+        } else {
+            try {
+                if (val.startsWith('[') || val.startsWith('{')) val = JSON.parse(val);
+            } catch (_) {}
         }
+        schema_data[key] = val;
+    });
+
+    const compInputs = document.querySelectorAll('.comp-input');
+    if (compInputs.length > 0) {
+        const comp_data = {};
+        compInputs.forEach(input => {
+            const key = input.dataset.key;
+            let val = input.value;
+            if (val === '') return;
+            if (input.tagName === 'SELECT') {
+                if (val === 'true') val = true;
+                else if (val === 'false') val = false;
+            } else if (input.type === 'number') {
+                val = Number(val);
+            } else {
+                try {
+                    if (val.startsWith('[') || val.startsWith('{')) val = JSON.parse(val);
+                } catch (_) {}
+            }
+            comp_data[key] = val;
+        });
+        schema_data.compatibility = comp_data;
     }
+
+    return schema_data;
+}
+
+// --- Delete with inline confirmation ---
+elements.btnDelete.onclick = () => {
+    elements.deleteConfirmBar?.classList.remove('hidden');
+    elements.btnDelete.classList.add('hidden');
 };
 
+elements.btnDeleteAbort?.addEventListener('click', () => {
+    elements.deleteConfirmBar?.classList.add('hidden');
+    elements.btnDelete.classList.remove('hidden');
+});
+
+elements.btnDeleteConfirm?.addEventListener('click', async () => {
+    if (!editingComponent) return;
+    const pid = editingComponent.pid;
+    elements.btnDeleteConfirm.innerHTML = `<i class="ph ph-spinner ph-spin"></i> Deleting...`;
+    elements.btnDeleteConfirm.disabled = true;
+
+    try {
+        const res = await fetch(`/api/components/${pid}/`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+
+        elements.formContainer.classList.add('hidden');
+        const activeNavName = document.querySelector('.nav-item.active span')?.textContent || currentCategory;
+        await loadCategory(currentCategory, activeNavName);
+        showToast(`${pid} deleted.`, 'warning');
+    } catch (e) {
+        console.error(e);
+        showToast('Error deleting component.', 'error');
+        elements.btnDeleteConfirm.innerHTML = `<i class="ph ph-trash"></i> Yes, Delete`;
+        elements.btnDeleteConfirm.disabled = false;
+    }
+});
+
+// --- Drone form ---
 function openDroneForm(item = null) {
     editingComponent = item;
     elements.formContainer.classList.add('hidden');
     elements.droneFormContainer.classList.remove('hidden');
+    elements.droneDeleteConfirmBar?.classList.add('hidden');
     elements.droneFormContainer.scrollIntoView({ behavior: 'smooth' });
 
     if (item) {
@@ -547,9 +572,9 @@ function openDroneForm(item = null) {
         elements.dfClass.value = item.build_class || '';
         elements.dfDesc.value = item.description || '';
         elements.dfImg.value = item.image_file || '';
-        elements.dfManual.value = item.pdf_file || ''; // Mapping manual to pdf_file in DroneModel
+        elements.dfManual.value = item.pdf_file || '';
         elements.dfRelations.value = JSON.stringify(item.relations || {}, null, 2);
-        elements.btnDroneDelete.style.display = 'block';
+        elements.btnDroneDelete.classList.remove('hidden');
     } else {
         elements.droneFormTitle.textContent = `Create New Drone Model`;
         elements.dfPid.value = '';
@@ -561,24 +586,22 @@ function openDroneForm(item = null) {
         elements.dfImg.value = '';
         elements.dfManual.value = '';
         elements.dfRelations.value = '{\n  "frames": [],\n  "motors": []\n}';
-        elements.btnDroneDelete.style.display = 'none';
+        elements.btnDroneDelete.classList.add('hidden');
     }
 }
 
 elements.droneForm.onsubmit = async (e) => {
     e.preventDefault();
-
-    const btn = elements.droneForm.querySelector('#btn-drone-save');
-    const originalText = btn.textContent;
-    btn.textContent = 'Saving...';
+    const btn = document.getElementById('btn-drone-save');
+    btn.innerHTML = `<i class="ph ph-spinner ph-spin"></i> Saving...`;
     btn.disabled = true;
 
     try {
         let relations = {};
         try {
             relations = JSON.parse(elements.dfRelations.value.trim());
-        } catch (err) {
-            alert("Component Relations must be valid JSON.");
+        } catch {
+            showToast('Component Relations must be valid JSON.', 'error');
             return;
         }
 
@@ -590,36 +613,61 @@ elements.droneForm.onsubmit = async (e) => {
             description: elements.dfDesc.value.trim(),
             image_file: elements.dfImg.value.trim(),
             pdf_file: elements.dfManual.value.trim(),
-            relations: relations,
+            relations,
         };
 
-        let url = '/api/drone-models/';
-        let method = 'POST';
-
-        if (editingComponent) {
-            url += `${editingComponent.pid}/`;
-            method = 'PUT';
-        }
+        const url = editingComponent ? `/api/drone-models/${editingComponent.pid}/` : '/api/drone-models/';
+        const method = editingComponent ? 'PUT' : 'POST';
 
         const res = await fetch(url, {
-            method: method,
+            method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(JSON.stringify(err));
-        }
+        if (!res.ok) throw new Error(JSON.stringify(await res.json()));
 
         elements.droneFormContainer.classList.add('hidden');
         await loadDroneModels();
+        showToast(editingComponent ? `${payload.pid} updated.` : `${payload.pid} created.`, 'success');
 
     } catch (e) {
         console.error(e);
-        alert(`Error saving drone model:\n${e.message}`);
+        showToast(`Error saving drone model: ${e.message}`, 'error');
     } finally {
-        btn.textContent = originalText;
+        btn.innerHTML = `<i class="ph ph-floppy-disk"></i> Save Drone Model`;
         btn.disabled = false;
     }
 };
+
+// --- Drone delete with inline confirmation ---
+elements.btnDroneDelete.onclick = () => {
+    elements.droneDeleteConfirmBar?.classList.remove('hidden');
+    elements.btnDroneDelete.classList.add('hidden');
+};
+
+elements.btnDroneDeleteAbort?.addEventListener('click', () => {
+    elements.droneDeleteConfirmBar?.classList.add('hidden');
+    elements.btnDroneDelete.classList.remove('hidden');
+});
+
+elements.btnDroneDeleteConfirm?.addEventListener('click', async () => {
+    if (!editingComponent) return;
+    const pid = editingComponent.pid;
+    elements.btnDroneDeleteConfirm.innerHTML = `<i class="ph ph-spinner ph-spin"></i> Deleting...`;
+    elements.btnDroneDeleteConfirm.disabled = true;
+
+    try {
+        const res = await fetch(`/api/drone-models/${pid}/`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+
+        elements.droneFormContainer.classList.add('hidden');
+        await loadDroneModels();
+        showToast(`${pid} deleted.`, 'warning');
+    } catch (e) {
+        console.error(e);
+        showToast('Error deleting drone model.', 'error');
+        elements.btnDroneDeleteConfirm.innerHTML = `<i class="ph ph-trash"></i> Yes, Delete`;
+        elements.btnDroneDeleteConfirm.disabled = false;
+    }
+});
