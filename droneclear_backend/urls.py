@@ -27,4 +27,7 @@ urlpatterns = [
     path('template/', TemplateView.as_view(template_name='template.html'), name='template'),
     path('editor/', TemplateView.as_view(template_name='editor.html')), # Legacy redirect/support
     path('', include('components.urls')),
-] + static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
