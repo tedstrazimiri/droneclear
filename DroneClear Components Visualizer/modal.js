@@ -2,6 +2,29 @@
 // modal.js — Component detail modal and language toggle
 // =============================================================
 
+// Extract unit suffix from field name (e.g., _mm → mm, _in → ", _v → V, _a → A, _mw → mW)
+function _extractUnit(fieldName) {
+    if (fieldName.endsWith('_mm')) return 'mm';
+    if (fieldName.endsWith('_in')) return '"';
+    if (fieldName.endsWith('_v')) return 'V';
+    if (fieldName.endsWith('_a')) return 'A';
+    if (fieldName.endsWith('_mw')) return 'mW';
+    if (fieldName.endsWith('_mah')) return 'mAh';
+    if (fieldName.endsWith('_deg')) return '\u00B0';
+    if (fieldName.endsWith('_g')) return 'g';
+    if (fieldName.endsWith('_w')) return 'W';
+    if (fieldName.endsWith('_ms')) return 'ms';
+    if (fieldName.endsWith('_mhz')) return 'MHz';
+    return '';
+}
+
+// Format compat key as readable label: strip unit suffixes, replace underscores, title-case
+function _formatCompatLabel(key) {
+    // Strip trailing unit suffixes for cleaner display
+    let label = key.replace(/_(mm|in|v|a|mw|mah|deg|g|w|ms|mhz)$/i, '');
+    return formatTitle(label);
+}
+
 function updateLanguage(lang) {
     currentLang = lang;
     const els = document.querySelectorAll('[data-i18n]');
@@ -59,53 +82,60 @@ function openModal(comp) {
     const specsHtml = [];
     const notesHtml = [];
     const sd = comp.schema_data || {};
-    const ignoredKeys = ['tags', 'compatibility', 'weight_g'];
+    const ignoredKeys = ['tags', 'compatibility', 'weight_g', '_compat_hard', '_compat_soft'];
 
     const blueprint = schemaTemplate[currentCategory]?.[0];
 
     if (blueprint) {
         Object.keys(blueprint).forEach(key => {
             if (ignoredKeys.includes(key)) return;
+            if (key.startsWith('_')) return; // Skip internal hint/options keys
 
             const val = sd.hasOwnProperty(key) ? sd[key] : null;
 
-            if (key.startsWith('_')) {
-                const displayVal = (val !== null && val !== '') ? val : '<span class="slot-empty-text">null</span>';
-                notesHtml.push(`<div class="note-item"><strong>${key}</strong><span>${displayVal}</span></div>`);
-            } else {
-                let displayVal = '<span class="slot-empty-text">null</span>';
-                let valClass = '';
-                if (val !== null && typeof val !== 'object' && val !== '') {
-                    displayVal = val;
-                    if (typeof val === 'boolean') {
-                        displayVal = val ? (currentLang === 'fr' ? 'Oui' : 'Yes') : (currentLang === 'fr' ? 'Non' : 'No');
-                        valClass = val ? 'bool-true' : 'bool-false';
-                    }
-                } else if (Array.isArray(val) && val.length > 0 && typeof val[0] !== 'object') {
-                    displayVal = val.join(', ');
-                }
-                specsHtml.push(`<div class="spec-item"><span class="spec-label">${formatTitle(key)}</span><span class="spec-value ${valClass}">${displayVal}</span></div>`);
+            // Skip null/undefined/empty values — don't clutter the modal
+            if (val === null || val === undefined || val === '') return;
+            if (Array.isArray(val) && val.length === 0) return;
+
+            let displayVal = val;
+            let valClass = '';
+            if (typeof val === 'boolean') {
+                displayVal = val ? (currentLang === 'fr' ? 'Oui' : 'Yes') : (currentLang === 'fr' ? 'Non' : 'No');
+                valClass = val ? 'bool-true' : 'bool-false';
+            } else if (Array.isArray(val) && val.length > 0 && typeof val[0] !== 'object') {
+                displayVal = val.join(', ');
+            } else if (typeof val === 'object' && !Array.isArray(val)) {
+                // Nested objects (e.g., dimensions_mm) — flatten to readable string
+                displayVal = Object.entries(val).filter(([,v]) => v !== null).map(([k,v]) => `${k}: ${v}`).join(', ');
+                if (!displayVal) return;
             }
+            specsHtml.push(`<div class="spec-item"><span class="spec-label">${formatTitle(key)}</span><span class="spec-value ${valClass}">${displayVal}</span></div>`);
         });
     } else {
         // Fallback if no blueprint loaded
         Object.keys(sd).forEach(key => {
             if (ignoredKeys.includes(key)) return;
+            if (key.startsWith('_')) return;
             const val = sd[key];
 
-            if (key.startsWith('_')) {
-                notesHtml.push(`<div class="note-item"><strong>${key}</strong><span>${val}</span></div>`);
-            } else if (val !== null && typeof val !== 'object') {
-                let displayVal = val;
-                let valClass = '';
-                if (typeof val === 'boolean') {
-                    displayVal = val ? (currentLang === 'fr' ? 'Oui' : 'Yes') : (currentLang === 'fr' ? 'Non' : 'No');
-                    valClass = val ? 'bool-true' : 'bool-false';
-                }
-                specsHtml.push(`<div class="spec-item"><span class="spec-label">${formatTitle(key)}</span><span class="spec-value ${valClass}">${displayVal}</span></div>`);
+            // Skip null/empty values
+            if (val === null || val === undefined || val === '') return;
+            if (Array.isArray(val) && val.length === 0) return;
+
+            let displayVal = val;
+            let valClass = '';
+            if (typeof val === 'boolean') {
+                displayVal = val ? (currentLang === 'fr' ? 'Oui' : 'Yes') : (currentLang === 'fr' ? 'Non' : 'No');
+                valClass = val ? 'bool-true' : 'bool-false';
             } else if (Array.isArray(val) && typeof val[0] !== 'object') {
-                specsHtml.push(`<div class="spec-item"><span class="spec-label">${formatTitle(key)}</span><span class="spec-value">${val.join(', ')}</span></div>`);
+                displayVal = val.join(', ');
+            } else if (typeof val === 'object' && !Array.isArray(val)) {
+                displayVal = Object.entries(val).filter(([,v]) => v !== null).map(([k,v]) => `${k}: ${v}`).join(', ');
+                if (!displayVal) return;
+            } else if (typeof val === 'object') {
+                return; // Skip complex objects
             }
+            specsHtml.push(`<div class="spec-item"><span class="spec-label">${formatTitle(key)}</span><span class="spec-value ${valClass}">${displayVal}</span></div>`);
         });
     }
 
@@ -118,40 +148,59 @@ function openModal(comp) {
         elements.modalNotesSection.classList.add('hidden');
     }
 
-    // Compatibility section
+    // Compatibility section — filter out internal _compat arrays, format values with units
     const blueprintCompat = blueprint?.compatibility || {};
     const compCompat = comp.schema_data?.compatibility || {};
-    const hasCompatBlueprint = Object.keys(blueprintCompat).length > 0;
-    const hasCompCompat = Object.keys(compCompat).length > 0;
+    const compatInternalKeys = ['_compat_hard', '_compat_soft'];
+    const hasCompatBlueprint = Object.keys(blueprintCompat).filter(k => !compatInternalKeys.includes(k)).length > 0;
+    const hasCompCompat = Object.keys(compCompat).filter(k => !compatInternalKeys.includes(k)).length > 0;
 
     if (hasCompatBlueprint) {
-        elements.modalCompat.innerHTML = Object.keys(blueprintCompat).map(k => {
-            const v = compCompat.hasOwnProperty(k) ? compCompat[k] : null;
-            let displayVal = '<span class="slot-empty-text">null</span>';
-            if (v !== null && v !== '') {
-                if (Array.isArray(v) && v.length > 0) displayVal = v.join(', ');
-                else if (typeof v === 'boolean') displayVal = v ? 'Yes' : 'No';
-                else displayVal = v;
-            }
-            return `
-                <div class="spec-item" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.05);">
-                    <span class="spec-label" style="color: var(--accent-cyan);">${formatTitle(k)}</span>
-                    <span class="spec-value">${displayVal}</span>
-                </div>`;
-        }).join('');
+        elements.modalCompat.innerHTML = Object.keys(blueprintCompat)
+            .filter(k => !compatInternalKeys.includes(k))
+            .map(k => {
+                const v = compCompat.hasOwnProperty(k) ? compCompat[k] : null;
+                if (v === null || v === undefined || v === '') return '';
+                if (Array.isArray(v) && v.length === 0) return '';
+
+                let displayVal;
+                const unit = _extractUnit(k);
+                if (Array.isArray(v) && v.length > 0) {
+                    displayVal = v.map(item => typeof item === 'number' ? item + unit : item).join(', ');
+                } else if (typeof v === 'boolean') {
+                    displayVal = v ? 'Yes' : 'No';
+                } else if (typeof v === 'number') {
+                    displayVal = v + unit;
+                } else {
+                    displayVal = v;
+                }
+                return `
+                    <div class="spec-item" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.05);">
+                        <span class="spec-label" style="color: var(--accent-cyan);">${_formatCompatLabel(k)}</span>
+                        <span class="spec-value">${displayVal}</span>
+                    </div>`;
+            }).filter(h => h !== '').join('');
         elements.modalCompatSection.classList.remove('hidden');
     } else if (hasCompCompat) {
         // Fallback
-        elements.modalCompat.innerHTML = Object.entries(compCompat).map(([k, v]) => {
-            let displayVal = v;
-            if (Array.isArray(v)) displayVal = v.join(', ');
-            else if (typeof v === 'boolean') displayVal = v ? 'Yes' : 'No';
-            return `
-                <div class="spec-item" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.05);">
-                    <span class="spec-label" style="color: var(--accent-cyan);">${formatTitle(k)}</span>
-                    <span class="spec-value">${displayVal}</span>
-                </div>`;
-        }).join('');
+        elements.modalCompat.innerHTML = Object.entries(compCompat)
+            .filter(([k]) => !compatInternalKeys.includes(k))
+            .map(([k, v]) => {
+                if (v === null || v === undefined || v === '') return '';
+                if (Array.isArray(v) && v.length === 0) return '';
+
+                let displayVal;
+                const unit = _extractUnit(k);
+                if (Array.isArray(v)) displayVal = v.map(item => typeof item === 'number' ? item + unit : item).join(', ');
+                else if (typeof v === 'boolean') displayVal = v ? 'Yes' : 'No';
+                else if (typeof v === 'number') displayVal = v + unit;
+                else displayVal = v;
+                return `
+                    <div class="spec-item" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.05);">
+                        <span class="spec-label" style="color: var(--accent-cyan);">${_formatCompatLabel(k)}</span>
+                        <span class="spec-value">${displayVal}</span>
+                    </div>`;
+            }).filter(h => h !== '').join('');
         elements.modalCompatSection.classList.remove('hidden');
     } else {
         elements.modalCompatSection.classList.add('hidden');

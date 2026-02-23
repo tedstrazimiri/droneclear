@@ -196,14 +196,24 @@ function createComponentCard(comp, highlightData = null) {
 
     let compatHtml = '';
     const compatData = comp.schema_data?.compatibility || {};
-    const compatKeys = Object.keys(compatData);
+    // Filter out internal _compat arrays and empty values for badge display
+    const compatKeys = Object.keys(compatData).filter(k => !k.startsWith('_'));
     if (compatKeys.length > 0) {
         const badges = compatKeys.slice(0, 3).map(k => {
             let val = compatData[k];
             if (val === null || val === undefined || val === '') return '';
-            if (Array.isArray(val)) { if (val.length === 0) return ''; val = val[0] + (val.length > 1 ? '+' : ''); }
-            else if (typeof val === 'boolean') { val = val ? 'Yes' : 'No'; }
-            return `<span class="compat-badge" title="${formatTitle(k)}"><i class="ph ph-wrench"></i> ${val}</span>`;
+            const unit = _extractUnit(k);
+            const label = _formatCompatLabel(k);
+            if (Array.isArray(val)) {
+                if (val.length === 0) return '';
+                const first = typeof val[0] === 'number' ? val[0] + unit : val[0];
+                val = first + (val.length > 1 ? '+' : '');
+            } else if (typeof val === 'boolean') {
+                val = val ? 'Yes' : 'No';
+            } else if (typeof val === 'number') {
+                val = val + unit;
+            }
+            return `<span class="compat-badge" title="${label}"><i class="ph ph-wrench"></i> ${val}</span>`;
         }).filter(b => b !== '').join('');
         compatHtml = `<div class="card-compat-badges">${badges}</div>`;
     }
@@ -222,7 +232,12 @@ function createComponentCard(comp, highlightData = null) {
         quickAddHtml = `<button class="btn-quick-add" title="Quick Add to Build"><i class="ph ph-plus-circle"></i></button>`;
     }
 
+    const thumbHtml = comp.image_file
+        ? `<div class="card-thumb"><img src="${comp.image_file}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`
+        : '';
+
     card.innerHTML = `
+        ${thumbHtml}
         <div class="card-header">
             <span class="card-pid">${comp.pid || 'N/A'}</span>
             <div style="display:flex; align-items:center; gap:8px;">
