@@ -2396,4 +2396,417 @@ details.form-collapsible>summary::-webkit-details-marker {
     .view-toggle-container {
         transform: scale(0.9);
     }
+
+    .wizard-banner {
+        padding: 10px 20px;
+    }
+
+    .wizard-banner-body {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+}
+
+/* ============================================================
+   WIZARD BANNER — persistent step guide above parts grid
+   ============================================================ */
+
+.wizard-banner {
+    background: linear-gradient(to right, rgba(218, 41, 28, 0.06), rgba(218, 41, 28, 0.02));
+    border-bottom: 2px solid rgba(218, 41, 28, 0.2);
+    padding: 12px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: slideDown 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.wizard-banner.hidden {
+    display: none;
+}
+
+/* Step progress — labeled chips row */
+.wizard-banner-progress {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+}
+
+.wizard-banner-progress::-webkit-scrollbar {
+    display: none;
+}
+
+.wizard-step-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    border: 1px solid var(--border-color);
+    background: var(--bg-dark);
+    color: var(--text-faint);
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+}
+
+.wizard-step-chip .wsc-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--border-color);
+    color: var(--text-faint);
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.wizard-step-chip .wsc-label {
+    font-weight: 600;
+}
+
+.wizard-step-chip .wsc-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* Current step — highlighted red */
+.wizard-step-chip.current {
+    background: rgba(218, 41, 28, 0.12);
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+}
+
+.wizard-step-chip.current .wsc-num {
+    background: var(--accent-red);
+    color: #fff;
+}
+
+/* Completed step — green check */
+.wizard-step-chip.completed {
+    background: rgba(34, 197, 94, 0.08);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+}
+
+.wizard-step-chip.completed .wsc-icon {
+    color: #22c55e;
+}
+
+/* Skipped step — dimmed dashed */
+.wizard-step-chip.skipped {
+    opacity: 0.4;
+    border-style: dashed;
+}
+
+/* Optional upcoming step — dashed border hint */
+.wizard-step-chip.optional {
+    border-style: dashed;
+}
+
+/* Banner body row */
+.wizard-banner-body {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.wizard-banner-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.wizard-banner-step {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-red);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.wizard-banner-prompt {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.wizard-banner-selection {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #22c55e;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.wizard-banner-selection:empty {
+    display: none;
+}
+
+.wizard-banner-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Sidebar locked state during wizard */
+.sidebar-nav.wizard-locked .nav-item {
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+.sidebar-nav.wizard-locked .nav-item.active {
+    pointer-events: none;
+    opacity: 1;
+}
+
+/* ============================================================
+   WIZARD CLASS SELECTOR — Step 0 drone size picker
+   ============================================================ */
+
+.wizard-class-selector {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    padding: 40px 20px 60px;
+}
+
+.wizard-class-heading {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+    max-width: 520px;
+}
+
+.wizard-class-heading i {
+    font-size: 40px;
+    color: var(--accent-red);
+    flex-shrink: 0;
+}
+
+.wizard-class-heading h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 4px;
+}
+
+.wizard-class-heading p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.wizard-class-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 640px;
+}
+
+.wizard-class-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 28px 16px;
+    background: var(--bg-panel);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: var(--card-shadow);
+    font-family: inherit;
+    color: inherit;
+}
+
+.wizard-class-option:hover {
+    border-color: var(--accent-red);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(218, 41, 28, 0.15);
+}
+
+.wizard-class-option:active {
+    transform: translateY(-1px);
+}
+
+.wizard-class-option i {
+    font-size: 36px;
+    color: var(--accent-red);
+}
+
+.wizard-class-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+    text-align: center;
+}
+
+.wizard-class-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.wizard-class-option--muted {
+    border-style: dashed;
+    opacity: 0.7;
+}
+
+.wizard-class-option--muted:hover {
+    opacity: 1;
+}
+
+@media (max-width: 600px) {
+    .wizard-class-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ============================================================
+   WIZARD COMPATIBILITY SECTION DIVIDERS
+   ============================================================ */
+
+.wizard-section-divider {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.wizard-section-divider i {
+    font-size: 18px;
+}
+
+.wizard-section-divider--green {
+    background: rgba(34, 197, 94, 0.08);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+[data-theme="dark"] .wizard-section-divider--green {
+    color: #4ade80;
+}
+
+.wizard-section-divider--orange {
+    background: rgba(234, 179, 8, 0.08);
+    color: #a16207;
+    border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+[data-theme="dark"] .wizard-section-divider--orange {
+    color: #fbbf24;
+}
+
+/* ============================================================
+   WIZARD HIDDEN PARTS TOGGLE
+   ============================================================ */
+
+.wizard-hidden-toggle {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+}
+
+.wizard-hidden-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 16px;
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px dashed rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: all 0.2s;
+}
+
+.wizard-hidden-toggle-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: var(--text-main);
+}
+
+.wizard-hidden-toggle-btn i {
+    font-size: 16px;
+    color: var(--text-faint);
+}
+
+.wizard-hidden-chevron {
+    margin-left: auto;
+    transition: transform 0.25s ease;
+}
+
+.wizard-hidden-chevron.rotated {
+    transform: rotate(180deg);
+}
+
+.wizard-hidden-container {
+    display: contents;
+}
+
+/* ============================================================
+   WIZARD CARD COMPATIBILITY STATES
+   ============================================================ */
+
+/* Compatible — green border glow */
+.card--compat-green {
+    border-color: rgba(34, 197, 94, 0.5) !important;
+    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.12), 0 2px 8px rgba(34, 197, 94, 0.08) !important;
+}
+
+.card--compat-green::before {
+    background: linear-gradient(90deg, #22c55e, #16a34a) !important;
+    opacity: 1 !important;
+}
+
+/* Caution — orange border */
+.card--compat-orange {
+    border-color: rgba(234, 179, 8, 0.5) !important;
+    box-shadow: 0 0 0 1px rgba(234, 179, 8, 0.12), 0 2px 8px rgba(234, 179, 8, 0.08) !important;
+}
+
+.card--compat-orange::before {
+    background: linear-gradient(90deg, #eab308, #ca8a04) !important;
+    opacity: 1 !important;
+}
+
+/* Incompatible — faded out */
+.card--compat-hidden {
+    opacity: 0.35 !important;
+    border-color: rgba(239, 68, 68, 0.25) !important;
+    filter: grayscale(0.5);
+}
+
+.card--compat-hidden:hover {
+    opacity: 0.6 !important;
+    filter: grayscale(0);
 }

@@ -119,6 +119,27 @@
                 </div>
             </header>
 
+            <!-- Wizard Banner — persistent guide bar above the parts grid -->
+            <div class="wizard-banner hidden" id="wizard-banner">
+                <div class="wizard-banner-progress" id="wizard-banner-progress">
+                    <!-- 12 step dots rendered by JS -->
+                </div>
+                <div class="wizard-banner-body">
+                    <div class="wizard-banner-info">
+                        <span class="wizard-banner-step" id="wizard-banner-step">Step 1 of 12</span>
+                        <span class="wizard-banner-prompt" id="wizard-banner-prompt">Select a Frame</span>
+                    </div>
+                    <div class="wizard-banner-selection" id="wizard-banner-selection">
+                        <!-- Shows currently selected component for this step, if any -->
+                    </div>
+                    <div class="wizard-banner-controls">
+                        <button class="btn btn-outline btn-sm" id="wizard-banner-skip">Skip</button>
+                        <button class="btn btn-outline btn-sm" id="wizard-banner-exit"
+                            style="border-color: var(--negative-red); color: var(--negative-red);">Exit Wizard</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Filter & Sort Toolbar -->
             <div class="filter-toolbar hidden" id="filter-toolbar">
                 <div class="filter-toolbar-controls">
@@ -148,6 +169,11 @@
                             <input type="number" class="filter-input" id="weight-max" placeholder="Max" min="0">
                         </div>
                     </div>
+                    <div class="dynamic-filters-separator hidden" id="dynamic-filters-separator"></div>
+                    <div class="dynamic-filters-container" id="dynamic-filters-container">
+                        <!-- Dynamic attribute filters injected by JS per category -->
+                    </div>
+
                     <button class="filter-clear-btn hidden" id="filter-clear-btn">
                         <i class="ph ph-x-circle"></i> Clear filters
                     </button>

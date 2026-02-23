@@ -81,7 +81,13 @@ function renderSidebar(categories) {
     }
 }
 
-async function selectCategory(category) {
+async function selectCategory(category, _fromWizard = false) {
+    // Block manual nav during wizard — only wizard-initiated calls pass _fromWizard=true
+    if (wizardActive && !_fromWizard) {
+        showToast('Complete the current wizard step first, or exit the wizard.', 'warning');
+        return;
+    }
+
     currentCategory = category;
 
     elements.categoryNav.querySelectorAll('.nav-item').forEach(item => {
@@ -116,7 +122,12 @@ async function renderComponents(searchTerm = '') {
     elements.componentsGrid.classList.remove('hidden');
     elements.componentsGrid.innerHTML = '';
 
-    const components = schemaData[currentCategory] || [];
+    let components = schemaData[currentCategory] || [];
+
+    // --- Wizard: Frame class filtering (Step 0 selection) ---
+    if (wizardActive && wizardDroneClass && currentCategory === 'frames') {
+        components = components.filter(comp => frameMatchesClass(comp, wizardDroneClass));
+    }
 
     populateFilterControls(components);
     const filteredComponents = applyFiltersAndSort(components, searchTerm);
@@ -131,34 +142,153 @@ async function renderComponents(searchTerm = '') {
         return;
     }
 
-    // Wizard highlighting
-    let highlightData = { active: false, matchPids: new Set(), warningPids: new Set() };
+    // --- Wizard: Compatibility-sorted rendering ---
     const activeWizardCategory = wizardActive && wizardCurrentStep < wizardSequence.length ? wizardSequence[wizardCurrentStep].cat : null;
+    const isWizardStep = wizardActive && currentBuild && currentCategory === activeWizardCategory;
 
-    if (wizardActive && currentBuild && currentCategory === activeWizardCategory) {
-        highlightData.active = true;
+    if (isWizardStep) {
+        // Partition components into 3 compatibility groups
+        const compatGroup = [];
+        const cautionGroup = [];
+        const incompatGroup = [];
+
         filteredComponents.forEach(comp => {
             const simulatedBuild = { ...currentBuild, [currentCategory]: comp };
             const warnings = getBuildWarnings(simulatedBuild);
+            const hasErrors = warnings.some(w => w.type === 'error');
+
             if (warnings.length === 0) {
-                highlightData.matchPids.add(comp.pid);
-            } else if (!warnings.some(w => w.type === 'error')) {
-                highlightData.warningPids.add(comp.pid);
+                compatGroup.push({ comp, warnings, warningCount: 0 });
+            } else if (!hasErrors) {
+                cautionGroup.push({ comp, warnings, warningCount: warnings.length });
+            } else {
+                incompatGroup.push({ comp, warnings, warningCount: warnings.length });
             }
         });
-    }
 
-    filteredComponents.forEach((comp, index) => {
-        const card = createComponentCard(comp, highlightData);
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(10px)';
-        card.style.transitionDelay = `${Math.min(index * 0.05, 0.5)}s`;
-        elements.componentsGrid.appendChild(card);
-        requestAnimationFrame(() => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
+        // Sort within groups
+        const weightSort = (a, b) => {
+            const wA = parseFloat(a.comp.schema_data?.weight_g) || 9999;
+            const wB = parseFloat(b.comp.schema_data?.weight_g) || 9999;
+            return wA - wB;
+        };
+        compatGroup.sort(weightSort);
+        cautionGroup.sort((a, b) => a.warningCount - b.warningCount || weightSort(a, b));
+        incompatGroup.sort((a, b) => (a.comp.name || '').localeCompare(b.comp.name || ''));
+
+        let cardIndex = 0;
+
+        // Helper: render a group of cards
+        const renderGroup = (group, cssClass) => {
+            group.forEach(({ comp, warnings }) => {
+                const highlightData = { active: true, matchPids: new Set(), warningPids: new Set() };
+                if (cssClass === 'compat-green') highlightData.matchPids.add(comp.pid);
+                else if (cssClass === 'compat-orange') highlightData.warningPids.add(comp.pid);
+
+                const card = createComponentCard(comp, highlightData);
+                card.classList.add(`card--${cssClass}`);
+
+                // Attach warning summary tooltip for caution cards
+                if (cssClass === 'compat-orange' && warnings.length > 0) {
+                    const warningSummary = warnings.map(w => w.title).join(' · ');
+                    card.title = `Warnings: ${warningSummary}`;
+                }
+
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(10px)';
+                card.style.transitionDelay = `${Math.min(cardIndex * 0.03, 0.4)}s`;
+                elements.componentsGrid.appendChild(card);
+                requestAnimationFrame(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                });
+                cardIndex++;
+            });
+        };
+
+        // 1. Render compatible group (green) — best matches first
+        if (compatGroup.length > 0) {
+            const header = document.createElement('div');
+            header.className = 'wizard-section-divider wizard-section-divider--green';
+            header.innerHTML = `<i class="ph-fill ph-check-circle"></i> <span>${compatGroup.length} Compatible Part${compatGroup.length !== 1 ? 's' : ''}</span>`;
+            elements.componentsGrid.appendChild(header);
+            renderGroup(compatGroup, 'compat-green');
+        }
+
+        // 2. Render caution group (orange) — warnings but no errors
+        if (cautionGroup.length > 0) {
+            const header = document.createElement('div');
+            header.className = 'wizard-section-divider wizard-section-divider--orange';
+            header.innerHTML = `<i class="ph-fill ph-warning"></i> <span>${cautionGroup.length} Part${cautionGroup.length !== 1 ? 's' : ''} with Warnings</span>`;
+            elements.componentsGrid.appendChild(header);
+            renderGroup(cautionGroup, 'compat-orange');
+        }
+
+        // 3. Render incompatible group — collapsed by default
+        if (incompatGroup.length > 0) {
+            const toggle = document.createElement('div');
+            toggle.className = 'wizard-hidden-toggle';
+            toggle.innerHTML = `
+                <button class="wizard-hidden-toggle-btn">
+                    <i class="ph ph-eye-slash"></i>
+                    <span>${incompatGroup.length} incompatible part${incompatGroup.length !== 1 ? 's' : ''} hidden</span>
+                    <i class="ph ph-caret-down wizard-hidden-chevron"></i>
+                </button>
+            `;
+            elements.componentsGrid.appendChild(toggle);
+
+            const hiddenContainer = document.createElement('div');
+            hiddenContainer.className = 'wizard-hidden-container collapsed';
+            hiddenContainer.style.display = 'none';
+            elements.componentsGrid.appendChild(hiddenContainer);
+
+            // Toggle expand/collapse
+            toggle.querySelector('.wizard-hidden-toggle-btn').addEventListener('click', () => {
+                const isCollapsed = hiddenContainer.style.display === 'none';
+                hiddenContainer.style.display = isCollapsed ? 'contents' : 'none';
+                toggle.querySelector('.wizard-hidden-chevron').classList.toggle('rotated', isCollapsed);
+                toggle.querySelector('span').textContent = isCollapsed
+                    ? `${incompatGroup.length} incompatible part${incompatGroup.length !== 1 ? 's' : ''} shown`
+                    : `${incompatGroup.length} incompatible part${incompatGroup.length !== 1 ? 's' : ''} hidden`;
+                toggle.querySelector('.ph-eye-slash')?.classList.replace('ph-eye-slash', 'ph-eye');
+                if (!isCollapsed) {
+                    toggle.querySelector('.ph-eye')?.classList.replace('ph-eye', 'ph-eye-slash');
+                }
+            });
+
+            // Pre-render hidden cards into container (they stay hidden until toggled)
+            incompatGroup.forEach(({ comp, warnings }) => {
+                const highlightData = { active: true, matchPids: new Set(), warningPids: new Set() };
+                const card = createComponentCard(comp, highlightData);
+                card.classList.add('card--compat-hidden');
+                if (warnings.length > 0) {
+                    card.title = `Errors: ${warnings.filter(w => w.type === 'error').map(w => w.title).join(' · ')}`;
+                }
+                hiddenContainer.appendChild(card);
+            });
+        }
+
+        // Show a count summary if all groups are empty (shouldn't happen, but safeguard)
+        if (compatGroup.length === 0 && cautionGroup.length === 0 && incompatGroup.length === 0) {
+            elements.componentsGrid.innerHTML = `<div class="empty-filter-state"><i class="ph ph-funnel-x"></i><p>No components found for this step.</p></div>`;
+        }
+
+    } else {
+        // Non-wizard rendering (normal mode)
+        let highlightData = { active: false, matchPids: new Set(), warningPids: new Set() };
+
+        filteredComponents.forEach((comp, index) => {
+            const card = createComponentCard(comp, highlightData);
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(10px)';
+            card.style.transitionDelay = `${Math.min(index * 0.05, 0.5)}s`;
+            elements.componentsGrid.appendChild(card);
+            requestAnimationFrame(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            });
         });
-    });
+    }
 }
 
 function createComponentCard(comp, highlightData = null) {
@@ -293,11 +423,19 @@ function createComponentCard(comp, highlightData = null) {
                 confirmBtn.onclick = (ev) => {
                     ev.stopPropagation();
                     addToBuild(comp);
-                    triggerRerender();
+                    if (wizardActive) {
+                        wizardNextStep();
+                    } else {
+                        triggerRerender();
+                    }
                 };
             } else {
                 addToBuild(comp);
-                triggerRerender();
+                if (wizardActive) {
+                    wizardNextStep();
+                } else {
+                    triggerRerender();
+                }
             }
         });
     }

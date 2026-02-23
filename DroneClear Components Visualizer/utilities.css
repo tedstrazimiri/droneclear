@@ -211,3 +211,28 @@
     border-color: var(--accent-red);
 }
 
+/* --- Dynamic Attribute Filters --- */
+.dynamic-filters-container {
+    display: contents;  /* flows children into parent flexbox */
+}
+
+.dynamic-filters-separator {
+    width: 1px;
+    height: 28px;
+    background: var(--border-color);
+    margin: 0 2px;
+    align-self: flex-end;
+    margin-bottom: 6px;
+}
+
+/* Range filters in dynamic container */
+.filter-group--range .range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-group--range .filter-input {
+    width: 68px;
+}
+

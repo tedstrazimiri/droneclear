@@ -40,6 +40,7 @@ function setupEventListeners() {
         if (!helpModal?.classList.contains('hidden')) { helpModal.classList.add('hidden'); return; }
         if (!elements.modal?.classList.contains('hidden')) { closeModal(); return; }
         if (!elements.buildDrawer?.classList.contains('closed')) { closeBuildDrawer(); return; }
+        if (wizardActive) { exitWizard(false); return; }
     });
 
     // Component modal
@@ -103,11 +104,15 @@ function setupEventListeners() {
         }
     });
 
-    // Wizard controls
+    // Wizard controls (old drawer-based buttons, kept for fallback)
     elements.btnStartWizard?.addEventListener('click', startWizard);
     elements.wizardSkipBtn?.addEventListener('click', wizardNextStep);
     elements.wizardNextBtn?.addEventListener('click', wizardNextStep);
     elements.wizardExitBtn?.addEventListener('click', exitWizard);
+
+    // Wizard Banner controls (new persistent banner)
+    elements.wizardBannerSkip?.addEventListener('click', wizardNextStep);
+    elements.wizardBannerExit?.addEventListener('click', () => exitWizard(false));
 
     // Global Help modal
     const btnGlobalHelp = document.getElementById('btn-global-help');

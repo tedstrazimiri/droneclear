@@ -53,11 +53,8 @@ function initBuildDrawer() {
 }
 
 function openBuildDrawer() {
-    if (wizardActive && elements.wizardHeader) {
-        elements.wizardHeader.classList.remove('hidden');
-    } else if (elements.wizardHeader) {
-        elements.wizardHeader.classList.add('hidden');
-    }
+    // Wizard header no longer lives in the drawer — always keep it hidden
+    elements.wizardHeader?.classList.add('hidden');
     elements.buildOverlay.classList.remove('hidden');
     elements.buildDrawer.classList.remove('closed');
 }
@@ -65,7 +62,7 @@ function openBuildDrawer() {
 function closeBuildDrawer() {
     elements.buildOverlay.classList.add('hidden');
     elements.buildDrawer.classList.add('closed');
-    if (wizardActive) exitWizard(false);
+    // Wizard no longer killed on drawer close — wizard lives in the banner
 }
 
 function addToBuild(comp) {
@@ -181,8 +178,10 @@ function getBuildWarnings(buildState) {
     const { frames: frame, propellers: props, flight_controllers: fc, motors, escs: esc, batteries: bat, video_transmitters: vtx, fpv_cameras: cam, stacks: stack } = buildState;
 
     // Helper: get effective FC and ESC (either standalone or from stack)
-    const effectiveFc = fc || (stack ? { schema_data: { ...(stack.schema_data?.fc || {}), compatibility: stack.schema_data?.compatibility }, pid: stack.pid } : null);
-    const effectiveEsc = esc || (stack ? { schema_data: { ...(stack.schema_data?.esc || {}), compatibility: stack.schema_data?.compatibility }, pid: stack.pid } : null);
+    // Spread flat stack.schema_data first (scraped stacks store mounting_pattern_mm etc. there),
+    // then override with fc/esc-specific sub-objects and the shared compatibility block.
+    const effectiveFc = fc || (stack ? { schema_data: { ...(stack.schema_data || {}), ...(stack.schema_data?.fc || {}), compatibility: stack.schema_data?.compatibility || {} }, pid: stack.pid } : null);
+    const effectiveEsc = esc || (stack ? { schema_data: { ...(stack.schema_data || {}), ...(stack.schema_data?.esc || {}), compatibility: stack.schema_data?.compatibility || {} }, pid: stack.pid } : null);
 
     // 1. Propeller size vs frame max
     if (frame && props) {

@@ -54,6 +54,8 @@ const elements = {
     weightMax: document.getElementById('weight-max'),
     filterClearBtn: document.getElementById('filter-clear-btn'),
     filterChips: document.getElementById('filter-chips'),
+    dynamicFiltersContainer: document.getElementById('dynamic-filters-container'),
+    dynamicFiltersSeparator: document.getElementById('dynamic-filters-separator'),
 
     // View Toggle
     btnViewGrid: document.getElementById('btn-view-grid'),
@@ -82,6 +84,15 @@ const elements = {
     wizardNextBtn: document.getElementById('wizard-next-btn'),
     wizardExitBtn: document.getElementById('wizard-exit-btn'),
 
+    // Wizard Banner (persistent guide bar)
+    wizardBanner: document.getElementById('wizard-banner'),
+    wizardBannerStep: document.getElementById('wizard-banner-step'),
+    wizardBannerPrompt: document.getElementById('wizard-banner-prompt'),
+    wizardBannerSelection: document.getElementById('wizard-banner-selection'),
+    wizardBannerProgress: document.getElementById('wizard-banner-progress'),
+    wizardBannerSkip: document.getElementById('wizard-banner-skip'),
+    wizardBannerExit: document.getElementById('wizard-banner-exit'),
+
     // Dark Mode
     darkModeToggle: document.getElementById('dark-mode-toggle'),
     darkModeIcon: document.getElementById('dark-mode-icon')
@@ -100,6 +111,10 @@ let currentWeightMin = null;
 let currentWeightMax = null;
 let weightDebounceTimer = null;
 let searchDebounceTimer = null;
+
+// --- Dynamic Attribute Filters ---
+let currentDynamicFilters = {};       // { 'schema_data.kv_rating': { type: 'range', min: 1800, max: null }, ... }
+let dynamicFilterDebounceTimers = {};
 
 // --- View State: 'grid' | 'list' ---
 let currentView = 'grid';
@@ -145,6 +160,7 @@ let currentBuild = {
 // --- Wizard State ---
 let wizardActive = false;
 let wizardCurrentStep = 0;
+let wizardDroneClass = null; // 'micro', '3inch', '5inch', '7inch', 'heavy', 'all', or null
 const wizardSequence = [
     { cat: 'frames',              prompt: 'Start with the foundation. Select a Frame.',                                       name: 'Frames' },
     { cat: 'stacks',              prompt: 'If using an FC+ESC stack, select it here — or skip for separate components.',       name: 'Stacks (Optional)' },
