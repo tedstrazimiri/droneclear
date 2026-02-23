@@ -4,6 +4,14 @@
 
 async function startWizard() {
     if (wizardActive) return;
+
+    // Confirm before clearing if build has components
+    const hasComponents = Object.values(currentBuild).some(v => v !== null);
+    if (hasComponents) {
+        const confirmed = confirm('Starting the wizard will clear your current build. Continue?');
+        if (!confirmed) return;
+    }
+
     wizardActive = true;
     wizardCurrentStep = 0;
 
@@ -17,6 +25,27 @@ async function startWizard() {
 }
 
 async function loadWizardStep() {
+    // Skip steps intelligently based on stack selection
+    while (wizardCurrentStep < wizardSequence.length) {
+        const step = wizardSequence[wizardCurrentStep];
+
+        // If a stack is selected, skip the standalone FC and ESC steps
+        if (currentBuild.stacks) {
+            if (step.cat === 'flight_controllers') {
+                showToast('Skipping FC — included in stack', 'info');
+                wizardCurrentStep++;
+                continue;
+            }
+            if (step.cat === 'escs') {
+                showToast('Skipping ESC — included in stack', 'info');
+                wizardCurrentStep++;
+                continue;
+            }
+        }
+
+        break;
+    }
+
     if (wizardCurrentStep >= wizardSequence.length) {
         exitWizard(true);
         return;
