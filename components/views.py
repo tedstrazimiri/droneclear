@@ -1,7 +1,13 @@
 from rest_framework import viewsets
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.db.models import Count
-from .models import Category, Component, DroneModel
-from .serializers import CategorySerializer, ComponentSerializer, DroneModelSerializer
+from django.utils import timezone
+from .models import Category, Component, DroneModel, BuildGuide, BuildGuideStep, BuildSession, StepPhoto
+from .serializers import (
+    CategorySerializer, ComponentSerializer, DroneModelSerializer,
+    BuildGuideListSerializer, BuildGuideDetailSerializer,
+    BuildSessionSerializer, StepPhotoSerializer,
+)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.annotate(count=Count('components')).order_by('name')
@@ -222,3 +228,91 @@ class ExportPartsView(APIView):
             parts.append(part)
 
         return Response(parts, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# Build Guide views
+# ---------------------------------------------------------------------------
+
+class BuildGuideViewSet(viewsets.ModelViewSet):
+    """CRUD for build guides. List uses lightweight serializer; detail includes nested steps."""
+    lookup_field = 'pid'
+
+    def get_queryset(self):
+        return BuildGuide.objects.annotate(step_count=Count('steps')).order_by('-updated_at')
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return BuildGuideListSerializer
+        return BuildGuideDetailSerializer
+
+
+class BuildSessionViewSet(viewsets.ModelViewSet):
+    """CRUD for build sessions. Serial number auto-generated on create."""
+    serializer_class = BuildSessionSerializer
+    lookup_field = 'serial_number'
+
+    def get_queryset(self):
+        qs = BuildSession.objects.select_related('guide').prefetch_related('photos').order_by('-started_at')
+        guide_pid = self.request.query_params.get('guide', None)
+        if guide_pid:
+            qs = qs.filter(guide__pid=guide_pid)
+        return qs
+
+    def perform_create(self, serializer):
+        today = timezone.now().strftime('%Y%m%d')
+        prefix = f'DC-{today}-'
+        last = (
+            BuildSession.objects
+            .filter(serial_number__startswith=prefix)
+            .order_by('-serial_number')
+            .first()
+        )
+        seq = 1
+        if last:
+            try:
+                seq = int(last.serial_number.split('-')[-1]) + 1
+            except ValueError:
+                seq = 1
+        sn = f'{prefix}{seq:04d}'
+        serializer.save(serial_number=sn)
+
+
+class StepPhotoUploadView(APIView):
+    """
+    GET  /api/build-sessions/<sn>/photos/  → list photos for session
+    POST /api/build-sessions/<sn>/photos/  → upload a photo
+    """
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get(self, request, sn):
+        try:
+            session = BuildSession.objects.get(serial_number=sn)
+        except BuildSession.DoesNotExist:
+            return Response({'error': 'Session not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        photos = StepPhoto.objects.filter(session=session).order_by('captured_at')
+        serializer = StepPhotoSerializer(photos, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    def post(self, request, sn):
+        try:
+            session = BuildSession.objects.get(serial_number=sn)
+        except BuildSession.DoesNotExist:
+            return Response({'error': 'Session not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        step_id = request.data.get('step')
+        image = request.FILES.get('image')
+        notes = request.data.get('notes', '')
+
+        if not step_id or not image:
+            return Response({'error': 'step and image are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            step = BuildGuideStep.objects.get(id=step_id, guide=session.guide)
+        except BuildGuideStep.DoesNotExist:
+            return Response({'error': 'Step not found in this guide'}, status=status.HTTP_404_NOT_FOUND)
+
+        photo = StepPhoto.objects.create(session=session, step=step, image=image, notes=notes)
+        serializer = StepPhotoSerializer(photo, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

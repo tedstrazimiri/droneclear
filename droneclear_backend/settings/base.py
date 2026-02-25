@@ -104,6 +104,12 @@ STATICFILES_DIRS = [
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # ---------------------------------------------------------------------------
+# Media files (user-uploaded content: build step photos, etc.)
+# ---------------------------------------------------------------------------
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# ---------------------------------------------------------------------------
 # Misc
 # ---------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

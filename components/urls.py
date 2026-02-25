@@ -6,6 +6,8 @@ router = DefaultRouter()
 router.register(r'categories', views.CategoryViewSet, basename='category')
 router.register(r'components', views.ComponentViewSet, basename='component')
 router.register(r'drone-models', views.DroneModelViewSet, basename='dronemodel')
+router.register(r'build-guides', views.BuildGuideViewSet, basename='buildguide')
+router.register(r'build-sessions', views.BuildSessionViewSet, basename='buildsession')
 
 urlpatterns = [
     path('api/', include(router.urls)),
@@ -14,4 +16,5 @@ urlpatterns = [
     path('api/export/parts/', views.ExportPartsView.as_view(), name='export-parts'),
     path('api/maintenance/restart/', views.RestartServerView.as_view(), name='restart-server'),
     path('api/maintenance/bug-report/', views.BugReportView.as_view(), name='bug-report'),
+    path('api/build-sessions/<str:sn>/photos/', views.StepPhotoUploadView.as_view(), name='session-photos'),
 ]

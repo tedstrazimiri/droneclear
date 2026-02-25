@@ -26,8 +26,10 @@ urlpatterns = [
     path('library/', TemplateView.as_view(template_name='editor.html'), name='library'),
     path('template/', TemplateView.as_view(template_name='template.html'), name='template'),
     path('editor/', TemplateView.as_view(template_name='editor.html')), # Legacy redirect/support
+    path('guide/', TemplateView.as_view(template_name='guide.html'), name='guide'),
     path('', include('components.urls')),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

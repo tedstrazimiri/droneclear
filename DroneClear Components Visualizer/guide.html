@@ -1,0 +1,545 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build Guide — DroneClear</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'base.css' %}">
+    <link rel="stylesheet" href="{% static 'layout.css' %}">
+    <link rel="stylesheet" href="{% static 'components.css' %}">
+    <link rel="stylesheet" href="{% static 'utilities.css' %}">
+    <link rel="stylesheet" href="{% static 'guide.css' %}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        (function () {
+            const saved = localStorage.getItem('dc-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', saved ? saved : (prefersDark ? 'dark' : 'light'));
+        })();
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- ─────────────── Sidebar ─────────────── -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-text">DroneClear Configurator</span>
+                </div>
+
+                <details class="system-meta-drawer">
+                    <summary>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span class="status-indicator"></span>
+                            <span>v1.0.0 | Build 26</span>
+                        </div>
+                        <i class="ph ph-caret-down"></i>
+                    </summary>
+                    <div class="meta-actions-grid">
+                        <p id="total-parts-count">Build Guide</p>
+                    </div>
+                </details>
+
+                <nav class="sidebar-menu"
+                    style="border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; padding-top: 16px;">
+                    <a href="/template/" class="btn btn-menu">
+                        <i class="ph ph-tree-structure"></i> Master Attributes
+                    </a>
+                    <a href="/library/" class="btn btn-menu">
+                        <i class="ph ph-books"></i> Parts Library Editor
+                    </a>
+                    <a href="/" class="btn btn-menu">
+                        <i class="ph ph-magic-wand"></i> Model Builder
+                    </a>
+                    <a href="/guide/" class="btn btn-menu active">
+                        <i class="ph ph-list-checks"></i> Build Guide
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Session info (shown during active builds) -->
+            <div class="sidebar-nav" id="guide-sidebar-info" style="display:none;">
+                <div class="guide-session-panel">
+                    <h3 class="guide-session-title">Active Build</h3>
+                    <div class="guide-session-sn" id="sidebar-sn">—</div>
+                    <div class="guide-session-meta">
+                        <span id="sidebar-guide-name">—</span>
+                        <span id="sidebar-step-progress">Step 0/0</span>
+                    </div>
+                    <div class="guide-session-progress-track">
+                        <div class="guide-session-progress-bar" id="sidebar-progress-bar" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ─────────────── Main content ─────────────── -->
+        <main class="main-content">
+
+            <header class="topbar">
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button class="mobile-nav-toggle" id="mobile-nav-toggle"
+                            style="display:none; background:none; border:none; cursor:pointer; color:var(--text-main);">
+                            <i class="ph ph-list" style="font-size:28px;"></i>
+                        </button>
+                        <h1 class="page-title" id="guide-page-title">Build Guides</h1>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <!-- Mode toggle: Browse / Edit -->
+                        <div class="guide-mode-toggle" id="guide-mode-toggle">
+                            <button class="guide-mode-btn active" data-mode="browse" id="btn-mode-browse">
+                                <i class="ph ph-compass"></i> Browse
+                            </button>
+                            <button class="guide-mode-btn" data-mode="edit" id="btn-mode-edit">
+                                <i class="ph ph-pencil-simple"></i> Edit
+                            </button>
+                        </div>
+
+                        <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 4px;"></div>
+
+                        <button class="btn btn-outline" id="btn-guide-settings" title="Guide settings"
+                            style="padding:7px 10px; font-size:13px;">
+                            <i class="ph ph-gear"></i>
+                        </button>
+
+                        <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode"
+                            aria-label="Toggle dark mode">
+                            <i class="ph ph-moon" id="dark-mode-icon"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Loader -->
+            <div class="loader-container" id="guide-loader">
+                <div class="spinner"></div>
+                <p>Loading Build Guides...</p>
+            </div>
+
+            <!-- ═══ Phase: SELECTION (guide card grid) ═══ -->
+            <div id="guide-selection" class="guide-phase hidden">
+                <div class="guide-grid" id="guide-grid">
+                    <!-- Guide cards injected by guide-selection.js -->
+                </div>
+                <div class="guide-empty-state hidden" id="guide-empty-state">
+                    <i class="ph ph-clipboard-text" style="font-size:48px; color:var(--text-muted);"></i>
+                    <h3>No build guides yet</h3>
+                    <p>Switch to Edit mode to create your first guide.</p>
+                </div>
+            </div>
+
+            <!-- ═══ Phase: OVERVIEW (pre-build checklist) ═══ -->
+            <div id="guide-overview" class="guide-phase hidden">
+                <div class="guide-overview-layout">
+                    <!-- Left: guide info -->
+                    <div class="guide-overview-info">
+                        <button class="btn btn-outline guide-back-btn" id="btn-back-to-selection">
+                            <i class="ph ph-arrow-left"></i> All Guides
+                        </button>
+                        <h2 id="overview-title" class="guide-overview-title">—</h2>
+                        <p id="overview-description" class="guide-overview-desc"></p>
+
+                        <div class="guide-overview-meta">
+                            <span class="guide-meta-badge" id="overview-difficulty">
+                                <i class="ph ph-gauge"></i> —
+                            </span>
+                            <span class="guide-meta-badge">
+                                <i class="ph ph-clock"></i> <span id="overview-time">—</span>
+                            </span>
+                            <span class="guide-meta-badge">
+                                <i class="ph ph-stack"></i> <span id="overview-steps-count">—</span> steps
+                            </span>
+                        </div>
+
+                        <!-- Required tools -->
+                        <div class="guide-tools-section">
+                            <h3><i class="ph ph-wrench"></i> Required Tools</h3>
+                            <ul id="overview-tools-list" class="guide-tools-list"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Right: checklist + start -->
+                    <div class="guide-overview-checklist-area">
+                        <div class="glass-panel">
+                            <h3 class="guide-checklist-title"><i class="ph ph-check-square"></i> Component Checklist</h3>
+                            <div id="overview-checklist" class="guide-checklist"></div>
+
+                            <div class="guide-start-section">
+                                <div class="form-group" style="margin-bottom:12px;">
+                                    <label class="form-label">Builder Name (optional)</label>
+                                    <input type="text" class="form-input" id="overview-builder-name"
+                                        placeholder="Your name or callsign">
+                                </div>
+                                <button class="btn btn-primary guide-start-btn" id="btn-start-build">
+                                    <i class="ph ph-play"></i> Start Build
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Phase: RUNNING (step-by-step) ═══ -->
+            <div id="guide-running" class="guide-phase hidden">
+                <!-- Progress bar -->
+                <div class="guide-progress-track">
+                    <div class="guide-progress-bar" id="runner-progress-bar" style="width:0%"></div>
+                </div>
+
+                <div class="guide-runner-layout">
+                    <!-- Step content -->
+                    <div class="guide-step-content">
+                        <div class="guide-step-header">
+                            <span class="guide-step-number" id="runner-step-number">Step 1</span>
+                            <span class="guide-step-type-badge" id="runner-step-type">assembly</span>
+                            <span class="guide-step-time"><i class="ph ph-clock"></i> <span id="runner-step-time">5 min</span></span>
+                        </div>
+
+                        <h2 id="runner-step-title" class="guide-step-title">—</h2>
+
+                        <!-- Safety warning -->
+                        <div id="runner-safety-warning" class="guide-safety-warning hidden">
+                            <i class="ph ph-warning"></i>
+                            <div id="runner-safety-text"></div>
+                        </div>
+
+                        <!-- Instructions -->
+                        <div id="runner-step-description" class="guide-step-description"></div>
+
+                        <!-- Reference image -->
+                        <div id="runner-reference-image-wrap" class="guide-reference-image-wrap hidden">
+                            <img id="runner-reference-image" class="guide-reference-image" src="" alt="Reference">
+                        </div>
+
+                        <!-- 3D Viewer -->
+                        <div id="runner-stl-viewer" class="guide-stl-viewer hidden">
+                            <div id="stl-viewer-container" class="guide-stl-canvas"></div>
+                        </div>
+
+                        <!-- Betaflight CLI -->
+                        <div id="runner-cli-section" class="guide-cli-section hidden">
+                            <div class="guide-cli-header">
+                                <span><i class="ph ph-terminal-window"></i> Betaflight CLI</span>
+                                <button class="btn btn-outline guide-cli-copy" id="btn-copy-cli">
+                                    <i class="ph ph-copy"></i> Copy
+                                </button>
+                            </div>
+                            <pre id="runner-cli-content" class="guide-cli-content"></pre>
+                        </div>
+                    </div>
+
+                    <!-- Photo capture area -->
+                    <div class="guide-photo-area">
+                        <div class="glass-panel">
+                            <h3 class="guide-photo-title"><i class="ph ph-camera"></i> Step Photos</h3>
+                            <p class="guide-photo-hint">Capture a photo at this step for your build log.</p>
+                            <button class="btn btn-primary guide-photo-btn" id="btn-take-photo">
+                                <i class="ph ph-camera"></i> Take Photo
+                            </button>
+                            <div id="runner-photo-gallery" class="guide-photo-gallery"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nav bar -->
+                <div class="guide-runner-nav">
+                    <button class="btn btn-outline" id="btn-step-prev" disabled>
+                        <i class="ph ph-arrow-left"></i> Previous
+                    </button>
+                    <span class="guide-runner-nav-label" id="runner-nav-label">Step 1 of X</span>
+                    <button class="btn btn-primary" id="btn-step-next">
+                        Next <i class="ph ph-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ═══ Phase: COMPLETED (build summary) ═══ -->
+            <div id="guide-completed" class="guide-phase hidden">
+                <div class="guide-completed-card glass-panel">
+                    <i class="ph ph-check-circle" style="font-size:56px; color:var(--accent-green);"></i>
+                    <h2>Build Complete!</h2>
+                    <div class="guide-completed-sn" id="completed-sn">DC-XXXXXXXX-0000</div>
+                    <div class="guide-completed-meta">
+                        <div><strong>Guide:</strong> <span id="completed-guide-name">—</span></div>
+                        <div><strong>Builder:</strong> <span id="completed-builder">—</span></div>
+                        <div><strong>Photos Taken:</strong> <span id="completed-photo-count">0</span></div>
+                        <div><strong>Duration:</strong> <span id="completed-duration">—</span></div>
+                    </div>
+                    <button class="btn btn-primary" id="btn-back-to-guides" style="margin-top:20px;">
+                        <i class="ph ph-arrow-left"></i> Back to Guides
+                    </button>
+                </div>
+            </div>
+
+            <!-- ═══ Phase: EDITING (guide authoring) ═══ -->
+            <div id="guide-editing" class="guide-phase hidden">
+                <div class="guide-editor-layout">
+                    <!-- Left: guide list -->
+                    <div class="guide-editor-list-panel">
+                        <div class="guide-editor-list-header">
+                            <h3>Guides</h3>
+                            <button class="btn btn-primary" id="btn-new-guide" style="padding:5px 10px; font-size:12px;">
+                                <i class="ph ph-plus"></i> New
+                            </button>
+                        </div>
+                        <div id="editor-guide-list" class="guide-editor-guide-list"></div>
+                    </div>
+
+                    <!-- Right: detail editor -->
+                    <div class="guide-editor-detail-panel">
+                        <div class="guide-editor-placeholder" id="editor-placeholder">
+                            <i class="ph ph-note-pencil" style="font-size:48px; color:var(--text-muted);"></i>
+                            <p>Select a guide to edit or create a new one.</p>
+                        </div>
+
+                        <div id="editor-form-area" class="hidden">
+                            <!-- Guide metadata form -->
+                            <div class="glass-panel guide-editor-meta-form">
+                                <h3 class="guide-editor-section-title">Guide Details</h3>
+                                <form id="guide-meta-form" class="editor-form">
+                                    <div class="form-group">
+                                        <label class="form-label">PID</label>
+                                        <input class="form-input" type="text" id="ge-pid" required placeholder="e.g. BG-001">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Name</label>
+                                        <input class="form-input" type="text" id="ge-name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Difficulty</label>
+                                        <select class="form-input" id="ge-difficulty">
+                                            <option value="beginner">Beginner</option>
+                                            <option value="intermediate">Intermediate</option>
+                                            <option value="advanced">Advanced</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Drone Class</label>
+                                        <input class="form-input" type="text" id="ge-drone-class" placeholder="e.g. 5inch">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Estimated Time (min)</label>
+                                        <input class="form-input" type="number" id="ge-time" value="60" min="1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Thumbnail URL</label>
+                                        <input class="form-input" type="text" id="ge-thumbnail" placeholder="https://...">
+                                    </div>
+                                    <div class="form-group form-group--full">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-input form-textarea" id="ge-description" rows="3"></textarea>
+                                    </div>
+                                    <div class="form-group form-group--full">
+                                        <label class="form-label">Required Tools (comma-separated)</label>
+                                        <input class="form-input" type="text" id="ge-tools"
+                                            placeholder="Soldering iron, Hex driver set, Wire strippers">
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Steps editor -->
+                            <div class="glass-panel guide-editor-steps-panel">
+                                <div class="guide-editor-steps-header">
+                                    <h3 class="guide-editor-section-title">Steps</h3>
+                                    <button class="btn btn-outline" id="btn-add-step" style="padding:5px 10px; font-size:12px;">
+                                        <i class="ph ph-plus"></i> Add Step
+                                    </button>
+                                </div>
+                                <div id="editor-steps-list" class="guide-editor-steps-list"></div>
+                            </div>
+
+                            <!-- Step detail (shown when a step is selected) -->
+                            <div class="glass-panel guide-editor-step-detail hidden" id="editor-step-detail">
+                                <h3 class="guide-editor-section-title">Step Detail</h3>
+                                <form id="step-detail-form" class="editor-form">
+                                    <div class="form-group">
+                                        <label class="form-label">Order</label>
+                                        <input class="form-input" type="number" id="se-order" min="1" value="1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Title</label>
+                                        <input class="form-input" type="text" id="se-title" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Step Type</label>
+                                        <select class="form-input" id="se-type">
+                                            <option value="assembly">Assembly</option>
+                                            <option value="soldering">Soldering</option>
+                                            <option value="firmware">Firmware</option>
+                                            <option value="3d_print">3D Print</option>
+                                            <option value="inspection">Inspection</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Estimated Time (min)</label>
+                                        <input class="form-input" type="number" id="se-time" value="5" min="1">
+                                    </div>
+                                    <div class="form-group form-group--full">
+                                        <label class="form-label">Description / Instructions</label>
+                                        <textarea class="form-input form-textarea" id="se-description" rows="5"></textarea>
+                                    </div>
+                                    <div class="form-group form-group--full">
+                                        <label class="form-label">Safety Warning</label>
+                                        <textarea class="form-input form-textarea" id="se-safety" rows="2"
+                                            placeholder="Leave blank if none"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Reference Image URL</label>
+                                        <input class="form-input" type="text" id="se-image" placeholder="https://...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">STL File URL</label>
+                                        <input class="form-input" type="text" id="se-stl" placeholder="https://...stl">
+                                    </div>
+                                    <div class="form-group form-group--full">
+                                        <label class="form-label">Betaflight CLI Dump</label>
+                                        <textarea class="form-input form-textarea code-editor" id="se-cli" rows="4"
+                                            placeholder="Paste Betaflight CLI commands..."></textarea>
+                                    </div>
+                                    <div class="form-group form-group--full">
+                                        <label class="form-label">Required Component PIDs (comma-separated)</label>
+                                        <input class="form-input" type="text" id="se-components"
+                                            placeholder="MTR-0001, ESC-0002">
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Save / delete actions -->
+                            <div class="guide-editor-actions">
+                                <button class="btn btn-danger" id="btn-delete-guide">
+                                    <i class="ph ph-trash"></i> Delete Guide
+                                </button>
+                                <div style="display:flex; gap:8px;">
+                                    <button class="btn btn-outline" id="btn-preview-guide">
+                                        <i class="ph ph-eye"></i> Preview
+                                    </button>
+                                    <button class="btn btn-primary" id="btn-save-guide">
+                                        <i class="ph ph-floppy-disk"></i> Save Guide
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ─────────────── Camera Modal ─────────────── -->
+    <div id="camera-modal" class="modal-overlay hidden" style="z-index:9998;">
+        <div class="modal-content guide-camera-modal">
+            <div class="guide-camera-header">
+                <h2><i class="ph ph-camera"></i> Capture Photo</h2>
+                <button class="btn" id="btn-close-camera" style="background:none; border:none; font-size:20px; color:var(--text-muted); cursor:pointer;">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <div class="guide-camera-body">
+                <video id="camera-video" class="guide-camera-video" autoplay playsinline></video>
+                <canvas id="camera-canvas" class="hidden"></canvas>
+                <img id="camera-preview" class="guide-camera-preview hidden" alt="Preview">
+            </div>
+            <div class="guide-camera-actions">
+                <button class="btn btn-outline" id="btn-camera-file">
+                    <i class="ph ph-upload-simple"></i> Upload File
+                </button>
+                <input type="file" id="camera-file-input" accept="image/*" capture="environment" style="display:none;">
+                <button class="btn btn-primary" id="btn-camera-capture">
+                    <i class="ph ph-aperture"></i> Capture
+                </button>
+                <button class="btn btn-primary hidden" id="btn-camera-accept">
+                    <i class="ph ph-check"></i> Use Photo
+                </button>
+                <button class="btn btn-outline hidden" id="btn-camera-retake">
+                    <i class="ph ph-arrow-counter-clockwise"></i> Retake
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─────────────── Settings Panel ─────────────── -->
+    <div id="guide-settings-panel" class="guide-settings-panel hidden">
+        <div class="guide-settings-header">
+            <h3><i class="ph ph-gear"></i> Guide Settings</h3>
+            <button class="btn" id="btn-close-settings" style="background:none; border:none; font-size:18px; color:var(--text-muted); cursor:pointer;">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+        <div class="guide-settings-body">
+            <div class="guide-setting-row">
+                <label>Photo Quality</label>
+                <select class="form-input" id="setting-photo-quality">
+                    <option value="low">Low (640px)</option>
+                    <option value="medium" selected>Medium (1280px)</option>
+                    <option value="high">High (1920px)</option>
+                </select>
+            </div>
+            <div class="guide-setting-row">
+                <label>Auto-advance after photo</label>
+                <input type="checkbox" id="setting-auto-advance">
+            </div>
+            <div class="guide-setting-row">
+                <label>Show safety warnings</label>
+                <input type="checkbox" id="setting-safety-warnings" checked>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─────────────── Scripts ─────────────── -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script src="{% static 'guide-state.js' %}"></script>
+    <script src="{% static 'guide-selection.js' %}"></script>
+    <script src="{% static 'guide-runner.js' %}"></script>
+    <script src="{% static 'guide-camera.js' %}"></script>
+    <script src="{% static 'guide-viewer.js' %}"></script>
+    <script src="{% static 'guide-editor.js' %}"></script>
+
+    <!-- Dark mode + mobile nav (shared pattern) -->
+    <script>
+        (function () {
+            function applyTheme(dark) {
+                document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+                const icon = document.getElementById('dark-mode-icon');
+                const btn = document.getElementById('dark-mode-toggle');
+                if (icon) icon.className = dark ? 'ph ph-sun' : 'ph ph-moon';
+                if (btn) btn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+            }
+            document.getElementById('dark-mode-toggle')?.addEventListener('click', function () {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                applyTheme(!isDark);
+                localStorage.setItem('dc-theme', !isDark ? 'dark' : 'light');
+            });
+            const saved = localStorage.getItem('dc-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            applyTheme(saved ? saved === 'dark' : prefersDark);
+        })();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggle = document.getElementById('mobile-nav-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (toggle && sidebar) {
+                toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+                document.addEventListener('click', (e) => {
+                    if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !toggle.contains(e.target))
+                        sidebar.classList.remove('open');
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
