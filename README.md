@@ -29,6 +29,28 @@ The DroneClear Configurator is a robust internal tool built to manage, visualize
 - Real-time compatibility validation: 12 checks covering mounting, voltage, connectors, and video systems.
 - Save and load builds to the backend (`/api/drone-models/`).
 
+### 4. Build Guide (`guide.html` → `/guide/`)
+Step-by-step guided drone assembly module. After a user creates a parts recipe in the Model Builder, the Build Guide walks them through physical assembly with documentation, photo evidence, and audit trail tracking.
+
+**Core Features**:
+- **Guide Selection Grid**: Browse available build guides as cards showing difficulty, estimated time, step count, and drone class.
+- **Build Overview**: Pre-build checklist with required tools, component verification checkboxes, and builder name entry.
+- **Step Runner**: Step-by-step instruction engine with progress tracking, previous/next navigation, and per-step photo capture.
+- **Serial Number Tracking**: Every build session receives a unique serial number (`DC-YYYYMMDD-XXXX`), generated server-side to prevent race conditions.
+- **Photo Capture**: Camera integration via `navigator.mediaDevices.getUserMedia()` (rear camera preferred) with file upload fallback. Photos are stored via Django `ImageField` to `media/build_photos/`.
+- **Safety Warnings**: Amber-highlighted warning boxes on steps involving soldering, high voltage, or other hazards. Can be toggled in settings.
+- **Betaflight CLI Viewer**: Dark terminal-styled code block for firmware configuration steps, with one-click copy to clipboard.
+- **3D STL Viewer**: Three.js-powered 3D model viewer for steps involving 3D-printed parts. Auto-centres and scales models, supports orbit controls.
+- **Guide Editor**: Dedicated authoring page (Edit mode toggle) with full CRUD for guides and their steps. Split-panel layout: guide list on left, detail form on right.
+- **User Settings**: Configurable photo quality (640/1280/1920px), auto-advance after photo, and safety warning visibility. Persisted to `localStorage`.
+
+**Build Session Lifecycle**:
+```
+Selection → Overview (checklist) → Start Build → Step 1..N (photos at each) → Complete → Summary
+```
+
+Each session records: serial number, guide reference, builder name, start/completion timestamps, current step, status (`in_progress` / `completed` / `abandoned`), component checklist state, and all captured photos.
+
 ---
 
 ## 🏗️ Architecture
@@ -50,14 +72,21 @@ Vanilla JS SPA — no framework. Modular JS files loaded in order:
 | `shortcuts.js` | Keyboard shortcut overlay |
 | `editor.js` | Parts Library CRUD (editor page only) |
 | `template.js` | Master Schema editor logic (template page only) |
+| `guide-state.js` | Build Guide global state, DOM refs, settings, API helpers |
+| `guide-selection.js` | Guide card grid, overview rendering, session start |
+| `guide-runner.js` | Step-by-step engine, navigation, session completion |
+| `guide-camera.js` | Camera capture (getUserMedia + file fallback), photo upload |
+| `guide-viewer.js` | Three.js STL/3MF viewer wrapper with auto-centre/scale |
+| `guide-editor.js` | Guide authoring UI: CRUD for guides and steps |
 
-**CSS Architecture** (4 files):
+**CSS Architecture** (5 files):
 - `base.css` — CSS variables, theme (light/dark), typography
 - `layout.css` — Structural layout: sidebar, topbar, main content, build drawer
 - `components.css` — Component cards, modals, badges, filter chips
 - `utilities.css` — Buttons, forms, toasts, overlays, loaders
+- `guide.css` — Build Guide module: card grid, runner, camera modal, editor, settings panel
 
-**Third-Party**: CodeMirror v5 (JSON editor), Phosphor Icons (`ph`)
+**Third-Party**: CodeMirror v5 (JSON editor), Phosphor Icons (`ph`), Three.js r128 + STLLoader + OrbitControls (guide page only, CDN-loaded)
 
 ### Backend (Django)
 Lightweight Django + Django REST Framework.
@@ -79,6 +108,11 @@ Lightweight Django + Django REST Framework.
 | `/api/drone-models/{pid}/` | GET/PUT/DELETE | Drone model CRUD |
 | `/api/import/parts/` | POST | Bulk import parts from JSON |
 | `/api/export/parts/` | GET | Bulk export parts as importable JSON |
+| `/api/build-guides/` | GET/POST | List or create build guides |
+| `/api/build-guides/{pid}/` | GET/PUT/DELETE | Build guide CRUD (detail includes nested steps) |
+| `/api/build-sessions/` | GET/POST | List or create build sessions (SN auto-generated) |
+| `/api/build-sessions/{sn}/` | GET/PATCH/DELETE | Build session CRUD by serial number |
+| `/api/build-sessions/{sn}/photos/` | GET/POST | List or upload step photos for a session |
 | `/api/maintenance/restart/` | POST | Touch wsgi.py to restart server |
 | `/api/maintenance/bug-report/` | POST | Save bug report to disk |
 
@@ -117,6 +151,93 @@ The master schema (`drone_parts_schema_v3.json`) is the single source of truth f
     "_compat_soft": ["prop_size_min_in", "prop_size_max_in"]
 }
 ```
+
+---
+
+## 🔧 Build Guide Data Model
+
+The Build Guide module adds four Django models to the `components` app:
+
+### `BuildGuide`
+Top-level guide definition. References an optional `DroneModel` for linking to a saved parts recipe.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `pid` | `CharField(50, unique)` | e.g. `BG-5IN-FREE-01` |
+| `name` | `CharField(255)` | Display name |
+| `description` | `TextField` | Rich description |
+| `difficulty` | `CharField` | `beginner` / `intermediate` / `advanced` |
+| `estimated_time_minutes` | `IntegerField` | Total build time estimate |
+| `drone_class` | `CharField(50)` | e.g. `5inch`, `3inch_cinewhoop` |
+| `thumbnail` | `CharField(500)` | URL for card thumbnail |
+| `drone_model` | `FK → DroneModel` | Optional link to saved build |
+| `required_tools` | `JSONField(list)` | e.g. `["Soldering iron", "Hex drivers"]` |
+| `settings` | `JSONField(dict)` | Extensible guide-level settings |
+
+### `BuildGuideStep`
+Ordered steps within a guide. Each step has a type that controls which UI elements are shown.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `guide` | `FK → BuildGuide` | Parent guide |
+| `order` | `IntegerField` | Step sequence (unique per guide) |
+| `title` | `CharField(255)` | Step title |
+| `description` | `TextField` | Assembly instructions |
+| `safety_warning` | `TextField` | Displayed in amber warning box |
+| `reference_image` | `CharField(500)` | URL to reference photo |
+| `stl_file` | `CharField(500)` | URL to STL for 3D viewer |
+| `betaflight_cli` | `TextField` | CLI dump for firmware steps |
+| `step_type` | `CharField` | `assembly` / `soldering` / `firmware` / `3d_print` / `inspection` |
+| `estimated_time_minutes` | `IntegerField` | Per-step time estimate |
+| `required_components` | `JSONField(list)` | Component PIDs needed, e.g. `["MTR-0001"]` |
+
+### `BuildSession`
+Tracks an individual build attempt. Serial number is auto-generated server-side.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `serial_number` | `CharField(50, unique)` | Format: `DC-YYYYMMDD-XXXX` |
+| `guide` | `FK → BuildGuide` | Which guide is being followed |
+| `started_at` | `DateTimeField(auto)` | Session start |
+| `completed_at` | `DateTimeField(null)` | Set on completion |
+| `current_step` | `IntegerField` | Last active step index |
+| `status` | `CharField` | `in_progress` / `completed` / `abandoned` |
+| `notes` | `TextField` | Builder notes |
+| `component_checklist` | `JSONField(dict)` | `{ "MTR-0001": true, ... }` |
+| `builder_name` | `CharField(255)` | Who performed the build |
+
+### `StepPhoto`
+Photos captured during a build session, linked to specific steps. Used for audit trail and CV dataset collection.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `session` | `FK → BuildSession` | Parent session |
+| `step` | `FK → BuildGuideStep` | Which step this photo documents |
+| `image` | `ImageField` | Stored in `media/build_photos/YYYY/MM/DD/` |
+| `captured_at` | `DateTimeField(auto)` | Timestamp |
+| `notes` | `TextField` | Optional photo annotation |
+
+### Guide Editor (Authoring Workflow)
+
+The guide editor (`/guide/` → Edit mode) provides a dedicated authoring interface:
+
+1. **Guide List** (left panel): All existing guides with PID and step count. Click to edit, or "+ New" to create.
+2. **Guide Metadata Form**: PID, name, difficulty, drone class, estimated time, thumbnail URL, description, required tools (comma-separated).
+3. **Steps Manager**: Ordered list of steps with drag-to-reorder support. Click a step to edit its detail form. "+ Add Step" appends a new step.
+4. **Step Detail Form**: Title, type, time, description, safety warning, reference image URL, STL URL, Betaflight CLI, required component PIDs.
+5. **Actions**: Save (PUT to API with nested steps), Delete, Preview (saves then switches to Browse mode).
+
+Steps are saved as a nested array in the guide PUT payload — the API replaces all steps atomically on each save.
+
+### Seed Data
+
+A management command creates a sample guide for testing:
+
+```bash
+python manage.py seed_guides
+```
+
+This seeds a **10-step "5-inch Freestyle Quad Build"** guide covering: Frame Assembly → Motor Mounting → ESC Soldering → FC Stack → Receiver Wiring → VTX Installation → Camera Mounting → 3D-Printed Accessories → Betaflight Flash & Tune → Final Inspection. Includes safety warnings on soldering/VTX steps and a Betaflight CLI dump.
 
 ---
 
@@ -216,13 +337,23 @@ The import endpoint (`POST /api/import/parts/`) performs upsert by PID and retur
    pip install -r requirements.txt
    ```
 
-3. **Run the Application**
+3. **Run Migrations**
+   ```bash
+   python manage.py migrate
+   ```
+
+4. **Seed Sample Data** (optional — creates a sample build guide for testing)
+   ```bash
+   python manage.py seed_guides
+   ```
+
+5. **Run the Application**
    ```bash
    python manage.py runserver 8000
    ```
    Navigate to `http://127.0.0.1:8000/`
 
-4. **Reset Parts Library to Golden State** (wipes all parts, seeds from schema examples)
+6. **Reset Parts Library to Golden State** (wipes all parts, seeds from schema examples)
    ```bash
    python manage.py reset_to_golden
    ```
@@ -250,10 +381,20 @@ The import endpoint (`POST /api/import/parts/`) performs upsert by PID and retur
 - ✅ Wizard overhaul: 9 steps → 12 steps, stack detection auto-skips FC+ESC, confirmation before clearing build
 - ✅ Compat badge cleanup: internal `_compat` keys filtered from card badges, labels formatted with units
 
-### 🔜 Tier 6 Candidates
+**Tier 6** — Build Guide module + Dynamic filters:
+- ✅ Dynamic category-specific attribute filters: `DYNAMIC_FILTER_CONFIG` maps 12 categories to contextual filter UIs (range sliders, dropdowns) based on schema_data fields
+- ✅ Build Guide module (`/guide/`): step-by-step guided assembly with serial number tracking, photo capture, STL 3D viewer, Betaflight CLI display, and dedicated guide editor
+- ✅ 4 new Django models: `BuildGuide`, `BuildGuideStep`, `BuildSession`, `StepPhoto`
+- ✅ REST API: ViewSets for guides and sessions, multipart photo upload endpoint
+- ✅ Camera integration: `getUserMedia` with rear-camera preference, file upload fallback, configurable quality
+- ✅ Three.js STL viewer: auto-centre, orbit controls, responsive resize
+- ✅ Seed data: 10-step "5-inch Freestyle Quad Build" management command
+
+### 🔜 Tier 7 Candidates
 - **Component Cloning**: Duplicate an existing part or schema category to speed up data entry.
 - **Build Export**: Export a completed build to CSV or PDF from the wizard.
-- **Advanced 3D Visualization**: WebGL/Three.js component previews.
+- **Build Guide → Model Builder Link**: Auto-populate guide component checklist from a linked DroneModel's relations.
+- **Photo AI Analysis**: Run CV models on captured step photos for quality assurance.
 - **Audit Logging**: Track who changed what in the schema and parts library.
 - **Tag Vocabulary**: Controlled tag taxonomy per category instead of free-form strings.
 - **Additional data sources**: Scrape GetFPV, RaceDayQuads, or manufacturer sites for broader coverage.
@@ -266,6 +407,8 @@ The import endpoint (`POST /api/import/parts/`) performs upsert by PID and retur
 - Use `.logo-text` gradient class for the logo area
 - System versioning and settings in `<details class="system-meta-drawer">` accordion
 - Maintenance buttons (Restart, Bug Report) nested inside the meta drawer
+- Four menu items on all pages: Master Attributes → Parts Library Editor → Model Builder → Build Guide
+- Active page highlighted with `.btn-menu.active` class
 
 ### Topbar Navigation
 All pages use this flexbox structure:
