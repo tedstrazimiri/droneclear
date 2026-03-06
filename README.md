@@ -47,7 +47,7 @@ Step-by-step guided drone assembly module. After a user creates a parts recipe i
 - **Build Timer**: Dual stopwatch showing total build elapsed time and per-step elapsed time. Updates every second via `setInterval`. Per-step times are accumulated in `guideState.stepElapsed` and displayed alongside step time estimates.
 - **Step Notes**: Per-step note-taking textarea with auto-save (debounced 1s) to `guideState.session.step_notes[stepOrder]`. Persisted via PATCH to session API.
 - **Markdown & Checklists**: Step descriptions support markdown-style checklists (`- [ ] item`). Rendered as interactive checkboxes tracked in `guideState.stepChecklists`. Plain markdown formatting (bold, headers, code, links) also rendered.
-- **Guide Editor**: Dedicated authoring interface (Edit mode toggle). Guide list moved to sidebar panel for full-width editing. Media list editor per step with type/URL/caption rows and add/remove support. Checklist display fields picker (max 5 from 13 options). Full CRUD for guides and their steps.
+- **Guide Editor**: Dedicated authoring interface (Edit mode toggle). Guide list moved to sidebar panel for full-width editing. **Drag-and-drop step reordering** with grab handles and drop indicators. **Collapsible step detail** panel with animated chevron toggle. Media list editor per step with type/URL/caption rows and add/remove support. Checklist display fields picker (max 5 from 13 options). Refined action bar: compact Delete (left), large Preview + Save Guide (right). Full CRUD for guides and their steps.
 - **Configurable Checklist Fields**: Guide authors choose which component attributes appear as badges on overview checklist items. 13 available fields: manufacturer, price, weight, mount pattern, bolt size, voltage, cell count, KV rating, connector, MCU, prop size, current, step usage. Stored in `guide.settings.checklist_fields` JSONField. Defaults: `['manufacturer', 'weight', 'step_reference']`.
 - **User Settings**: Configurable photo quality (640/1280/1920px), auto-advance after photo, and safety warning visibility. Persisted to `localStorage`.
 
@@ -239,10 +239,10 @@ The guide editor (`/guide/` → Edit mode) provides a dedicated authoring interf
 
 1. **Guide List** (sidebar panel): All existing guides with PID and step count, displayed in the left sidebar below session info. Click to edit, or "+ New" to create.
 2. **Guide Metadata Form** (full-width): PID, name, difficulty, drone class, estimated time, thumbnail URL, description, required tools (comma-separated). Increased padding (24px) for comfortable editing.
-3. **Steps Manager**: Ordered list of steps with click-to-select. "+ Add Step" appends a new step. Remove button (X) on each step.
-4. **Step Detail Form**: Title, type, time, description, safety warning, **media list editor** (add/remove rows of type/URL/caption), STL URL, Betaflight CLI, required component PIDs.
+3. **Steps Manager**: Ordered list of steps with click-to-select, **drag-and-drop reordering** (grab handle + drop indicators), "+ Add Step" red action button (compact, right-aligned), and remove button (X) on each step. Dragging a step splices the array and renumbers all `order` fields automatically; the currently-selected step tracks correctly through reorder operations.
+4. **Step Detail Form** (collapsible): Clickable header with animated chevron toggle to collapse/expand the form — keeps the step list visible when editing long guides. Contains: title, type, time, description, safety warning, **media list editor** (add/remove rows of type/URL/caption), STL URL, Betaflight CLI, required component PIDs.
 5. **Checklist Display Fields Picker**: 2-column checkbox grid of 13 available attributes. Max 5 enforced (unchecked boxes disable when limit reached). Saved to `guide.settings.checklist_fields`.
-6. **Actions**: Save (PUT to API with nested steps including settings), Delete, Preview (saves then switches to Browse mode).
+6. **Actions**: Three-button bar — small Delete (muted, left), large Preview (outline), and large Save Guide (prominent red primary, right). Save PUTs to API with nested steps including settings. Preview saves then switches to Browse mode.
 
 Steps are saved as a nested array in the guide PUT payload — the API replaces all steps atomically on each save.
 
@@ -458,14 +458,19 @@ The import endpoint (`POST /api/import/parts/`) performs upsert by PID and retur
 - ✅ **Scroll fix**: Wrapped `guide.html` content in `.content-body` scroll container (matching other pages). Fixed overflow clipping on glass panels extending beyond viewport.
 - ✅ **630+ real parts imported** from DRONECLEAR_SCRAPE/imports/ (frames, motors, ESCs, FCs, props, batteries, cameras, VTXs, receivers, antennas, stacks).
 
-### 🔜 Tier 9 Candidates
+**Tier 9** — Guide Editor UX & authoring efficiency:
+- ✅ **Drag-and-drop step reordering**: Native HTML5 drag-and-drop on the step list. Grab handle (`ph-dots-six-vertical`) per step, `dragstart`/`dragover`/`drop`/`dragend` event chain. Drop indicators show red `box-shadow` above or below the target. On drop: array splice + automatic `order` renumbering. `editingStepIndex` tracks through reorder (handles dragged-step-is-selected, third-party-shift, and no-op cases). Current step form is saved before reorder to prevent data loss.
+- ✅ **Collapsible step detail panel**: Clickable header with `ph-caret-up` chevron icon. CSS `max-height` transition (3000px → 0) with opacity fade. Chevron rotates 180° when collapsed. Keeps step list visible while working on long guides with many steps.
+- ✅ **Add Step button restyle**: Changed from full-width outline to compact red `btn-primary` with `padding: 5px 12px`, right-aligned next to "Steps" header. Red colour signals actionable intent.
+- ✅ **Action bar layout overhaul**: Replaced uniform button row with hierarchical layout — small muted Delete button (left, `font-size: 12px`), large Preview outline button (`min-width: 140px`), and large Save Guide primary button (`min-width: 160px`, `font-weight: 600`) on the right. All three on the same horizontal baseline via `flex-direction: row; align-items: center; flex-wrap: nowrap`.
+
+### 🔜 Tier 10 Candidates
 - **Component Cloning**: Duplicate an existing part or schema category to speed up data entry.
 - **Build Export**: Export a completed build to CSV or PDF from the wizard.
 - **Photo AI Analysis**: Run CV models on captured step photos for quality assurance.
 - **Audit Logging**: Track who changed what in the schema and parts library.
 - **Tag Vocabulary**: Controlled tag taxonomy per category instead of free-form strings.
 - **Additional data sources**: Scrape GetFPV, RaceDayQuads, or manufacturer sites for broader coverage.
-- **Drag-and-drop step reordering**: Sortable step list in the guide editor.
 - **Media upload**: Direct file upload for step media (currently URL-only).
 - **Build guide versioning**: Track guide revisions so sessions reference a specific version.
 
