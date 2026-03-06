@@ -31,7 +31,7 @@ class BuildGuideStepSerializer(serializers.ModelSerializer):
         model = BuildGuideStep
         fields = [
             'id', 'order', 'title', 'description', 'safety_warning',
-            'reference_image', 'stl_file', 'betaflight_cli', 'step_type',
+            'media', 'stl_file', 'betaflight_cli', 'step_type',
             'estimated_time_minutes', 'required_components',
         ]
 
@@ -108,7 +108,7 @@ class BuildSessionSerializer(serializers.ModelSerializer):
         model = BuildSession
         fields = [
             'serial_number', 'guide', 'started_at', 'completed_at',
-            'current_step', 'status', 'notes', 'component_checklist',
-            'builder_name', 'photos',
+            'current_step', 'status', 'notes', 'step_notes',
+            'component_checklist', 'builder_name', 'photos',
         ]
         read_only_fields = ['serial_number', 'started_at']

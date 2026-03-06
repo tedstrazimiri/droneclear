@@ -13,6 +13,13 @@ const guideState = {
     cameraStream: null,
     editingGuide: null,       // Guide being edited
     editingStepIndex: -1,     // Which step in editor is selected (-1 = none)
+    // Timer state
+    buildStartTime: null,     // Date.now() when build starts
+    stepStartTime: null,      // Date.now() when current step starts
+    stepElapsed: {},          // { stepOrder: elapsedMs }
+    timerInterval: null,      // setInterval ID
+    // Checklists (in-memory per session)
+    stepChecklists: {},       // { stepOrder: { checkIndex: boolean } }
 };
 
 // Settings persisted in localStorage
@@ -54,7 +61,10 @@ function cacheGuideDOMRefs() {
         'guide-running', 'runner-progress-bar', 'runner-step-number',
         'runner-step-type', 'runner-step-time', 'runner-step-title',
         'runner-safety-warning', 'runner-safety-text', 'runner-step-description',
-        'runner-reference-image-wrap', 'runner-reference-image',
+        'runner-media-carousel', 'media-track', 'media-prev', 'media-next',
+        'media-dots', 'media-expand', 'media-caption',
+        'media-lightbox', 'lightbox-close', 'lightbox-prev', 'lightbox-next',
+        'lightbox-viewport', 'lightbox-caption', 'lightbox-dots',
         'runner-stl-viewer', 'stl-viewer-container',
         'runner-cli-section', 'runner-cli-content', 'btn-copy-cli',
         'runner-photo-gallery', 'btn-take-photo',
@@ -73,15 +83,22 @@ function cacheGuideDOMRefs() {
         'ge-thumbnail', 'ge-description', 'ge-tools',
         // Step detail fields
         'se-order', 'se-title', 'se-type', 'se-time', 'se-description',
-        'se-safety', 'se-image', 'se-stl', 'se-cli', 'se-components',
-        // Sidebar session
+        'se-safety', 'se-stl', 'se-cli', 'se-components',
+        // Sidebar session + guide list
         'guide-sidebar-info', 'sidebar-sn', 'sidebar-guide-name',
         'sidebar-step-progress', 'sidebar-progress-bar',
+        'sidebar-guide-list-panel',
         // Mode toggle
         'btn-mode-browse', 'btn-mode-edit', 'guide-mode-toggle',
         // Settings
         'btn-guide-settings', 'guide-settings-panel', 'btn-close-settings',
         'setting-photo-quality', 'setting-auto-advance', 'setting-safety-warnings',
+        // Timer
+        'runner-step-timer', 'timer-build-elapsed', 'timer-step-elapsed',
+        'timer-build-value', 'timer-step-value', 'timer-estimate-value',
+        'runner-time-estimate',
+        // Step notes
+        'runner-step-notes', 'notes-save-status',
         // Camera
         'camera-modal', 'camera-video', 'camera-canvas', 'camera-preview',
         'btn-close-camera', 'btn-camera-file', 'camera-file-input',
