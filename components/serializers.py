@@ -95,7 +95,7 @@ class StepPhotoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StepPhoto
-        fields = ['id', 'step', 'image', 'image_url', 'captured_at', 'notes']
+        fields = ['id', 'step', 'image', 'image_url', 'captured_at', 'notes', 'sha256']
 
     def get_image_url(self, obj):
         request = self.context.get('request')
@@ -114,5 +114,6 @@ class BuildSessionSerializer(serializers.ModelSerializer):
             'serial_number', 'guide', 'started_at', 'completed_at',
             'current_step', 'status', 'notes', 'step_notes',
             'component_checklist', 'builder_name', 'photos',
+            'step_timing', 'guide_snapshot', 'component_snapshot',
         ]
-        read_only_fields = ['serial_number', 'started_at']
+        read_only_fields = ['serial_number', 'started_at', 'guide_snapshot', 'component_snapshot']

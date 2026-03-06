@@ -1,0 +1,215 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build Audit — DroneClear</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'base.css' %}">
+    <link rel="stylesheet" href="{% static 'layout.css' %}">
+    <link rel="stylesheet" href="{% static 'components.css' %}">
+    <link rel="stylesheet" href="{% static 'utilities.css' %}">
+    <link rel="stylesheet" href="{% static 'audit.css' %}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        (function () {
+            const saved = localStorage.getItem('dc-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', saved ? saved : (prefersDark ? 'dark' : 'light'));
+        })();
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- ─────────────── Sidebar ─────────────── -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-text">DroneClear Configurator</span>
+                </div>
+
+                <details class="system-meta-drawer">
+                    <summary>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span class="status-indicator"></span>
+                            <span>v1.0.0 | Build 26</span>
+                        </div>
+                        <i class="ph ph-caret-down"></i>
+                    </summary>
+                    <div class="meta-actions-grid">
+                        <p id="total-parts-count">Build Audit</p>
+                    </div>
+                </details>
+
+                <nav class="sidebar-menu"
+                    style="border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; padding-top: 16px;">
+                    <a href="/template/" class="btn btn-menu">
+                        <i class="ph ph-tree-structure"></i> Master Attributes
+                    </a>
+                    <a href="/library/" class="btn btn-menu">
+                        <i class="ph ph-books"></i> Parts Library Editor
+                    </a>
+                    <a href="/" class="btn btn-menu">
+                        <i class="ph ph-magic-wand"></i> Model Builder
+                    </a>
+                    <a href="/guide/" class="btn btn-menu">
+                        <i class="ph ph-list-checks"></i> Build Guide
+                    </a>
+                    <a href="/audit/" class="btn btn-menu active">
+                        <i class="ph ph-clipboard-text"></i> Build Audit
+                    </a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- ─────────────── Main content ─────────────── -->
+        <main class="main-content">
+
+            <!-- Topbar -->
+            <header class="topbar">
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button class="mobile-nav-toggle" id="mobile-nav-toggle"
+                            style="display:none; background:none; border:none; cursor:pointer; color:var(--text-main);">
+                            <i class="ph ph-list" style="font-size:28px;"></i>
+                        </button>
+                        <h1 class="page-title" id="audit-page-title">Build Audit</h1>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
+                        <button class="dark-mode-toggle" id="dark-mode-toggle">
+                            <i class="ph ph-moon" id="dark-mode-icon"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-body">
+
+                <!-- ═══ Search Phase ═══ -->
+                <div id="audit-search" class="audit-phase">
+                    <div class="audit-search-card glass-panel">
+                        <i class="ph ph-clipboard-text" style="font-size:48px; color:var(--text-muted);"></i>
+                        <h2>Build Audit Lookup</h2>
+                        <p style="color:var(--text-muted); margin-bottom:20px;">Enter a serial number to view the complete build record, timeline, and photo evidence.</p>
+                        <div class="audit-search-form">
+                            <input type="text" class="form-input" id="audit-sn-input"
+                                placeholder="DC-YYYYMMDD-NNNN" autocomplete="off"
+                                style="font-family:'Courier New',monospace; font-size:16px; text-align:center; letter-spacing:1px;">
+                            <button class="btn btn-primary" id="btn-audit-search">
+                                <i class="ph ph-magnifying-glass"></i> Look Up
+                            </button>
+                        </div>
+                        <div id="audit-recent-section" style="margin-top:32px; text-align:left; width:100%;">
+                            <h3 style="font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:12px;">Recent Builds</h3>
+                            <div id="audit-recent-builds" class="audit-recent-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ Record Phase ═══ -->
+                <div id="audit-record" class="audit-phase hidden">
+
+                    <!-- Back button -->
+                    <button class="btn btn-outline" id="btn-back-to-search" style="margin-bottom:16px;">
+                        <i class="ph ph-arrow-left"></i> Back to Search
+                    </button>
+
+                    <!-- Header card -->
+                    <div class="glass-panel audit-header-card" id="audit-header">
+                        <div class="audit-header-top">
+                            <div>
+                                <div class="audit-sn-display" id="audit-sn">—</div>
+                                <div class="audit-guide-name" id="audit-guide-name">—</div>
+                            </div>
+                            <div class="audit-status-badge" id="audit-status">—</div>
+                        </div>
+                        <div class="audit-header-meta">
+                            <div class="audit-meta-item">
+                                <i class="ph ph-user"></i>
+                                <span id="audit-builder">—</span>
+                            </div>
+                            <div class="audit-meta-item">
+                                <i class="ph ph-calendar"></i>
+                                <span id="audit-started">—</span>
+                            </div>
+                            <div class="audit-meta-item">
+                                <i class="ph ph-check-circle"></i>
+                                <span id="audit-completed">—</span>
+                            </div>
+                            <div class="audit-meta-item">
+                                <i class="ph ph-timer"></i>
+                                <span id="audit-duration">—</span>
+                            </div>
+                            <div class="audit-meta-item">
+                                <i class="ph ph-camera"></i>
+                                <span id="audit-photo-count">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline -->
+                    <div class="glass-panel" style="padding:24px;">
+                        <h3 style="margin-bottom:16px; font-size:15px;"><i class="ph ph-clock-clockwise"></i> Event Timeline</h3>
+                        <div id="audit-timeline" class="audit-timeline"></div>
+                    </div>
+
+                    <!-- Step Accordion -->
+                    <div class="glass-panel" style="padding:24px;">
+                        <h3 style="margin-bottom:16px; font-size:15px;"><i class="ph ph-list-numbers"></i> Build Steps</h3>
+                        <div id="audit-steps-accordion"></div>
+                        <div id="audit-no-snapshot" class="hidden" style="padding:16px; text-align:center; color:var(--text-muted);">
+                            <i class="ph ph-warning" style="font-size:24px;"></i>
+                            <p>Snapshot not available. This build predates the audit system.</p>
+                        </div>
+                    </div>
+
+                    <!-- Component Summary -->
+                    <div class="glass-panel" style="padding:24px;">
+                        <h3 style="margin-bottom:16px; font-size:15px;"><i class="ph ph-package"></i> Component Bill of Materials</h3>
+                        <div id="audit-components"></div>
+                    </div>
+
+                    <!-- Integrity Panel -->
+                    <div class="glass-panel" style="padding:24px;">
+                        <h3 style="margin-bottom:16px; font-size:15px;"><i class="ph ph-shield-check"></i> Data Integrity</h3>
+                        <div id="audit-integrity"></div>
+                    </div>
+
+                </div>
+
+            </div><!-- /.content-body -->
+        </main>
+    </div>
+
+    <!-- Shared utils (showToast, escHTML, getCookie, dark mode toggle) -->
+    <script src="{% static 'utils.js' %}"></script>
+    <script src="{% static 'audit.js' %}"></script>
+
+    <script>
+        // Dark mode toggle (shared pattern across all pages)
+        document.getElementById('dark-mode-toggle')?.addEventListener('click', () => {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('dc-theme', next);
+            const icon = document.getElementById('dark-mode-icon');
+            if (icon) icon.className = next === 'dark' ? 'ph ph-sun' : 'ph ph-moon';
+        });
+        // Set correct icon on load
+        (function () {
+            const theme = document.documentElement.getAttribute('data-theme');
+            const icon = document.getElementById('dark-mode-icon');
+            if (icon) icon.className = theme === 'dark' ? 'ph ph-sun' : 'ph ph-moon';
+        })();
+    </script>
+</body>
+</html>

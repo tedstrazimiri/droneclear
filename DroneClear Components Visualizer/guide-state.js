@@ -145,6 +145,7 @@ const GUIDE_API = {
     sessions: '/api/build-sessions/',
     sessionDetail: (sn) => `/api/build-sessions/${sn}/`,
     sessionPhotos: (sn) => `/api/build-sessions/${sn}/photos/`,
+    sessionEvents: (sn) => `/api/build-sessions/${sn}/events/`,
     componentsByPids: (pids) => `/api/components/?pids=${pids.join(',')}`,
     droneModels: '/api/drone-models/',
     droneModelDetail: (pid) => `/api/drone-models/${pid}/`,
@@ -406,3 +407,48 @@ function resolveChecklistFieldValue(fieldKey, comp, extras) {
     if (!value) return null;
     return { label: opt.label, value: String(value), icon: opt.icon };
 }
+
+// ── Audit Event Queue ────────────────────────────────────
+// Fire-and-forget event logging for immutable build audit trail.
+
+const _auditEventQueue = [];
+let _auditFlushTimer = null;
+
+/**
+ * Queue an audit event. Events are batched (500ms debounce) and sent
+ * to the server without blocking the UI.
+ */
+function emitBuildEvent(eventType, stepOrder, data = {}) {
+    if (!guideState.session) return;
+    _auditEventQueue.push({ event_type: eventType, step_order: stepOrder, data });
+    clearTimeout(_auditFlushTimer);
+    _auditFlushTimer = setTimeout(flushEventQueue, 500);
+}
+
+/**
+ * Flush all queued events to the server. Call directly on session completion
+ * or page unload to ensure nothing is lost.
+ */
+async function flushEventQueue() {
+    if (!guideState.session || _auditEventQueue.length === 0) return;
+    const sn = guideState.session.serial_number;
+    const batch = _auditEventQueue.splice(0, _auditEventQueue.length);
+
+    for (const evt of batch) {
+        apiFetch(GUIDE_API.sessionEvents(sn), {
+            method: 'POST',
+            body: JSON.stringify(evt),
+        }).catch(err => console.warn('Audit event log failed:', err));
+    }
+}
+
+// Flush events on page close via sendBeacon (fire-and-forget)
+window.addEventListener('beforeunload', () => {
+    if (!guideState.session || _auditEventQueue.length === 0) return;
+    const sn = guideState.session.serial_number;
+    const batch = _auditEventQueue.splice(0, _auditEventQueue.length);
+    for (const evt of batch) {
+        const blob = new Blob([JSON.stringify(evt)], { type: 'application/json' });
+        navigator.sendBeacon(GUIDE_API.sessionEvents(sn), blob);
+    }
+});

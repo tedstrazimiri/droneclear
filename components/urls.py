@@ -17,4 +17,6 @@ urlpatterns = [
     path('api/maintenance/restart/', views.RestartServerView.as_view(), name='restart-server'),
     path('api/maintenance/bug-report/', views.BugReportView.as_view(), name='bug-report'),
     path('api/build-sessions/<str:sn>/photos/', views.StepPhotoUploadView.as_view(), name='session-photos'),
+    path('api/build-sessions/<str:sn>/events/', views.BuildEventView.as_view(), name='session-events'),
+    path('api/audit/<str:sn>/', views.BuildAuditView.as_view(), name='build-audit'),
 ]

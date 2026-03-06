@@ -121,6 +121,11 @@ class BuildSession(models.Model):
     component_checklist = models.JSONField(default=dict, blank=True)
     builder_name = models.CharField(max_length=255, blank=True)
 
+    # Audit: frozen snapshots captured at build start
+    guide_snapshot = models.JSONField(default=dict, blank=True)
+    component_snapshot = models.JSONField(default=dict, blank=True)
+    step_timing = models.JSONField(default=dict, blank=True)  # { "1": { started_at, completed_at, elapsed_ms } }
+
     def __str__(self):
         return f"{self.serial_number} ({self.status})"
 
@@ -132,6 +137,36 @@ class StepPhoto(models.Model):
     image = models.ImageField(upload_to='build_photos/%Y/%m/%d/')
     captured_at = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True)
+    sha256 = models.CharField(max_length=64, blank=True)  # Integrity hash computed server-side
 
     def __str__(self):
         return f"Photo for {self.session.serial_number} step {self.step.order}"
+
+
+class BuildEvent(models.Model):
+    """Immutable audit log entry for a build session. Append-only — no update/delete via API."""
+    EVENT_TYPES = [
+        ('session_started', 'Session Started'),
+        ('session_completed', 'Session Completed'),
+        ('session_abandoned', 'Session Abandoned'),
+        ('step_started', 'Step Started'),
+        ('step_completed', 'Step Completed'),
+        ('photo_captured', 'Photo Captured'),
+        ('note_saved', 'Note Saved'),
+        ('checklist_updated', 'Checklist Updated'),
+    ]
+
+    session = models.ForeignKey(BuildSession, related_name='events', on_delete=models.CASCADE)
+    event_type = models.CharField(max_length=30, choices=EVENT_TYPES)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    step_order = models.IntegerField(null=True, blank=True)
+    data = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ['timestamp']
+        indexes = [
+            models.Index(fields=['session', 'timestamp']),
+        ]
+
+    def __str__(self):
+        return f"{self.session.serial_number} | {self.event_type} @ {self.timestamp}"

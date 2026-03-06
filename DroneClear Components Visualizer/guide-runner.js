@@ -142,12 +142,21 @@ function _populateStep(index, step, steps) {
     // Update sidebar
     updateSidebarSession();
 
-    // Update session on server
+    // Update session on server (including step timing for audit)
     if (guideState.session) {
         apiFetch(GUIDE_API.sessionDetail(guideState.session.serial_number), {
             method: 'PATCH',
-            body: JSON.stringify({ current_step: index }),
+            body: JSON.stringify({
+                current_step: index,
+                step_timing: guideState.stepElapsed,
+            }),
         }).catch(err => console.warn('Failed to update session step:', err));
+
+        // Audit: emit step_started event
+        emitBuildEvent('step_started', step.order, {
+            step_title: step.title,
+            step_type: step.step_type || 'assembly',
+        });
     }
 }
 
@@ -209,6 +218,11 @@ function recordStepTime() {
         if (step) {
             const elapsed = Date.now() - guideState.stepStartTime;
             guideState.stepElapsed[step.order] = (guideState.stepElapsed[step.order] || 0) + elapsed;
+
+            // Audit: emit step_completed event
+            emitBuildEvent('step_completed', step.order, {
+                elapsed_ms: guideState.stepElapsed[step.order],
+            });
         }
     }
     guideState.stepStartTime = Date.now();
@@ -262,6 +276,10 @@ function saveStepNotes() {
                 status.className = 'guide-notes-status visible saved';
                 setTimeout(() => { status.className = 'guide-notes-status'; }, 2000);
             }
+            // Audit: emit note_saved event
+            emitBuildEvent('note_saved', step.order, {
+                note_length: textarea.value.length,
+            });
         } catch (err) {
             console.warn('Failed to save step notes:', err);
             if (status) {
@@ -584,6 +602,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-back-to-guides')?.addEventListener('click', () => {
         loadGuideList().then(() => setGuidePhase('selection'));
     });
+
+    // View Audit Record from completed
+    document.getElementById('btn-view-audit')?.addEventListener('click', () => {
+        if (guideState.session?.serial_number) {
+            window.location.href = `/audit/#${guideState.session.serial_number}`;
+        }
+    });
 });
 
 // ── Session completion ───────────────────────────────────
@@ -602,17 +627,25 @@ async function completeSession() {
             body: JSON.stringify({
                 status: 'completed',
                 completed_at: now,
+                step_timing: guideState.stepElapsed,
             }),
         });
+
+        // Audit: emit session_completed and flush all queued events
+        let photoCount = 0;
+        Object.values(guideState.photos).forEach(arr => { photoCount += arr.length; });
+        emitBuildEvent('session_completed', null, {
+            total_elapsed_ms: guideState.buildStartTime ? Date.now() - guideState.buildStartTime : null,
+            photo_count: photoCount,
+        });
+        await flushEventQueue();
 
         // Show completion screen
         setText('completed-sn', guideState.session.serial_number);
         setText('completed-guide-name', guideState.selectedGuide?.name || '—');
         setText('completed-builder', guideState.session.builder_name || 'Unknown');
 
-        // Count photos
-        let photoCount = 0;
-        Object.values(guideState.photos).forEach(arr => { photoCount += arr.length; });
+        // Photo count already computed above for audit event
         setText('completed-photo-count', photoCount);
 
         // Duration — use build timer if available, fallback to server timestamps

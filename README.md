@@ -58,6 +58,26 @@ Selection → Overview (checklist) → Start Build → Step 1..N (photos at each
 
 Each session records: serial number, guide reference, builder name, start/completion timestamps, current step, status (`in_progress` / `completed` / `abandoned`), component checklist state, per-step notes (`step_notes` JSONField), and all captured photos.
 
+### 5. Build Audit (`audit.html` → `/audit/`)
+Enterprise-grade build audit viewer. When a build is started, all guide steps and component specs are frozen into immutable snapshots. Every action during the build (step transitions, photo captures, note saves) is logged as an append-only `BuildEvent`. Photos are SHA-256 hashed server-side for integrity verification.
+
+**Core Features**:
+- **Serial Number Lookup**: Search by serial number (`DC-YYYYMMDD-NNNN`) or browse recent completed builds.
+- **Deep-link Support**: `/audit/#DC-20260306-0001` auto-loads the record.
+- **Audit Header**: Serial number, status badge, builder name, start/end timestamps, total duration, photo count.
+- **Event Timeline**: Chronological feed of all build events with color-coded icons (session start/end, step transitions, photo captures, note saves).
+- **Step Accordion**: Expandable panels per build step showing description (from guide snapshot), actual timing vs estimate, builder notes, photos with SHA-256 badges, and components used.
+- **Component BOM**: Full bill of materials from the component snapshot (name, PID, category, manufacturer, price, weight).
+- **Data Integrity Panel**: Five verification checks — guide snapshot, component snapshot, photo hashes, event log, build status — each with pass/warn badges.
+- **Photo Hash List**: All SHA-256 hashes displayed with capture timestamps for verification.
+
+**Audit Data Model**:
+- `BuildSession.guide_snapshot` — frozen guide + steps at build start (JSONField)
+- `BuildSession.component_snapshot` — frozen component specs at build start (JSONField, keyed by PID)
+- `BuildSession.step_timing` — per-step elapsed time in ms (JSONField)
+- `StepPhoto.sha256` — SHA-256 hash computed server-side at upload
+- `BuildEvent` — immutable append-only event log (session FK, event_type, timestamp, step_order, data JSONField)
+
 ---
 
 ## 🏗️ Architecture
@@ -85,13 +105,15 @@ Vanilla JS SPA — no framework. Modular JS files loaded in order:
 | `guide-camera.js` | Camera capture (getUserMedia + file fallback), photo upload |
 | `guide-viewer.js` | Three.js STL/3MF viewer wrapper with auto-centre/scale |
 | `guide-editor.js` | Guide authoring UI: CRUD for guides/steps, media list editor, checklist field picker |
+| `audit.js` | Build Audit viewer: serial lookup, timeline, step accordion, integrity panel |
 
-**CSS Architecture** (5 files):
+**CSS Architecture** (6 files):
 - `base.css` — CSS variables, theme (light/dark), typography
 - `layout.css` — Structural layout: sidebar, topbar, main content, build drawer
 - `components.css` — Component cards, modals, badges, filter chips
 - `utilities.css` — Buttons, forms, toasts, overlays, loaders
 - `guide.css` — Build Guide module: card grid, runner, camera modal, editor, settings panel
+- `audit.css` — Build Audit module: search card, timeline, step accordion, integrity badges, BOM table
 
 **Third-Party**: CodeMirror v5 (JSON editor), Phosphor Icons (`ph`), Three.js r128 + STLLoader + OrbitControls (guide page only, CDN-loaded)
 
@@ -128,6 +150,8 @@ Lightweight Django + Django REST Framework.
 | `/api/build-sessions/` | GET/POST | List or create build sessions (SN auto-generated) |
 | `/api/build-sessions/{sn}/` | GET/PATCH/DELETE | Build session CRUD by serial number |
 | `/api/build-sessions/{sn}/photos/` | GET/POST | List or upload step photos for a session |
+| `/api/build-sessions/{sn}/events/` | GET/POST | List or log audit events for a session |
+| `/api/audit/{sn}/` | GET | Complete audit record (snapshots, photos, timeline) |
 | `/api/maintenance/restart/` | POST | Touch wsgi.py to restart server |
 | `/api/maintenance/bug-report/` | POST | Save bug report to disk |
 
@@ -221,6 +245,9 @@ Tracks an individual build attempt. Serial number is auto-generated server-side.
 | `step_notes` | `JSONField(dict)` | Per-step notes: `{ "1": "note text", ... }` |
 | `component_checklist` | `JSONField(dict)` | `{ "MTR-0001": true, ... }` |
 | `builder_name` | `CharField(255)` | Who performed the build |
+| `guide_snapshot` | `JSONField(dict)` | Frozen guide + steps at build start (audit) |
+| `component_snapshot` | `JSONField(dict)` | Frozen component specs at build start (audit) |
+| `step_timing` | `JSONField(dict)` | Per-step elapsed time: `{ "1": 12345, ... }` |
 
 ### `StepPhoto`
 Photos captured during a build session, linked to specific steps. Used for audit trail and CV dataset collection.
@@ -232,6 +259,18 @@ Photos captured during a build session, linked to specific steps. Used for audit
 | `image` | `ImageField` | Stored in `media/build_photos/YYYY/MM/DD/` |
 | `captured_at` | `DateTimeField(auto)` | Timestamp |
 | `notes` | `TextField` | Optional photo annotation |
+| `sha256` | `CharField(64)` | SHA-256 hash for integrity verification |
+
+### `BuildEvent`
+Immutable audit log entries. Append-only — no update or delete via API.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `session` | `FK → BuildSession` | Parent session |
+| `event_type` | `CharField(30)` | `session_started` / `session_completed` / `session_abandoned` / `step_started` / `step_completed` / `photo_captured` / `note_saved` / `checklist_updated` |
+| `timestamp` | `DateTimeField(auto)` | Server-side, prevents backdating |
+| `step_order` | `IntegerField(null)` | Which step (null for session-level events) |
+| `data` | `JSONField(dict)` | Event-specific payload |
 
 ### Guide Editor (Authoring Workflow)
 
@@ -464,15 +503,27 @@ The import endpoint (`POST /api/import/parts/`) performs upsert by PID and retur
 - ✅ **Add Step button restyle**: Changed from full-width outline to compact red `btn-primary` with `padding: 5px 12px`, right-aligned next to "Steps" header. Red colour signals actionable intent.
 - ✅ **Action bar layout overhaul**: Replaced uniform button row with hierarchical layout — small muted Delete button (left, `font-size: 12px`), large Preview outline button (`min-width: 140px`), and large Save Guide primary button (`min-width: 160px`, `font-weight: 600`) on the right. All three on the same horizontal baseline via `flex-direction: row; align-items: center; flex-wrap: nowrap`.
 
-### 🔜 Tier 10 Candidates
+**Tier 10** — Build Audit module:
+- ✅ **Build Audit page** (`/audit/`): Serial number lookup, deep-link support (`/audit/#DC-XXXXXXXX-XXXX`), recent builds list, full audit record viewer.
+- ✅ **BuildEvent model**: Immutable append-only event log. 8 event types: session_started, session_completed, session_abandoned, step_started, step_completed, photo_captured, note_saved, checklist_updated. Server-timestamped, no update/delete API.
+- ✅ **Guide + component snapshots**: `guide_snapshot` and `component_snapshot` JSONFields on BuildSession, frozen at build start. Audit viewer renders from snapshots regardless of later edits/deletions.
+- ✅ **Photo integrity**: SHA-256 hash computed server-side on upload, stored in `StepPhoto.sha256`. Displayed on audit viewer with "verified at upload" badges.
+- ✅ **Step timing persistence**: `step_timing` JSONField on BuildSession, populated during build via PATCH alongside `current_step`.
+- ✅ **Event emission**: Frontend `emitBuildEvent()` queues events (500ms debounce), `flushEventQueue()` sends to `/api/build-sessions/{sn}/events/`. `beforeunload` handler uses `navigator.sendBeacon()` for page-close safety.
+- ✅ **Audit viewer**: Header card (serial, status, builder, dates), event timeline (color-coded icons), step accordion (timing, notes, photos, components), BOM table, integrity panel (5 verification checks).
+- ✅ **Sidebar navigation**: "Build Audit" link added to all 5 pages. "View Audit Record" button on build completion screen.
+- ✅ **Audit API endpoints**: `GET/POST /api/build-sessions/{sn}/events/`, `GET /api/audit/{sn}/`.
+
+### 🔜 Tier 11 Candidates
 - **Component Cloning**: Duplicate an existing part or schema category to speed up data entry.
 - **Build Export**: Export a completed build to CSV or PDF from the wizard.
 - **Photo AI Analysis**: Run CV models on captured step photos for quality assurance.
-- **Audit Logging**: Track who changed what in the schema and parts library.
+- **Schema Audit Logging**: Track who changed what in the schema and parts library.
 - **Tag Vocabulary**: Controlled tag taxonomy per category instead of free-form strings.
 - **Additional data sources**: Scrape GetFPV, RaceDayQuads, or manufacturer sites for broader coverage.
 - **Media upload**: Direct file upload for step media (currently URL-only).
 - **Build guide versioning**: Track guide revisions so sessions reference a specific version.
+- **Audit PDF export**: Generate downloadable PDF audit reports from the audit viewer.
 
 ---
 
@@ -482,7 +533,7 @@ The import endpoint (`POST /api/import/parts/`) performs upsert by PID and retur
 - Use `.logo-text` gradient class for the logo area
 - System versioning and settings in `<details class="system-meta-drawer">` accordion
 - Maintenance buttons (Restart, Bug Report) nested inside the meta drawer
-- Four menu items on all pages: Master Attributes → Parts Library Editor → Model Builder → Build Guide
+- Five menu items on all pages: Master Attributes → Parts Library Editor → Model Builder → Build Guide → Build Audit
 - Active page highlighted with `.btn-menu.active` class
 
 ### Topbar Navigation
@@ -532,3 +583,53 @@ This repo is developed collaboratively between two AI agents:
 - **Shared repo**: `github.com/tedstrazimiri/droneclear` (`master` branch)
 
 Always `git fetch && git merge origin/master --ff-only` before starting work to pick up the other agent's commits. Commits follow conventional format: `feat:`, `fix:`, `style:`, `refactor:`, `docs:`.
+
+---
+
+## 📋 Session Log (2026-03-06) — Build Audit Module
+
+### What was built
+The entire Build Audit module (Tier 9) was designed, planned, and implemented in a single session. This is the biggest single-session feature addition to date — 16 files touched, 4 new files created, ~700 lines of new code across backend and frontend.
+
+### Files created
+| File | Purpose |
+|------|---------|
+| `DroneClear Components Visualizer/audit.html` | Audit viewer page template — search phase + record phase |
+| `DroneClear Components Visualizer/audit.js` | ~320 lines. Serial lookup, timeline render, step accordion, BOM table, integrity panel |
+| `DroneClear Components Visualizer/audit.css` | ~540 lines. Full styling: glass panels, timeline, accordion, BOM grid, responsive breakpoints |
+| `components/migrations/0007_build_audit.py` | Django migration: BuildEvent model + snapshot/timing/sha256 fields |
+
+### Files modified
+| File | Changes |
+|------|---------|
+| `components/models.py` | +`BuildEvent` model (8 event types, append-only). +`guide_snapshot`, `component_snapshot`, `step_timing` JSONFields on BuildSession. +`sha256` CharField on StepPhoto |
+| `components/views.py` | +169 lines. Snapshot logic in `perform_create()`, SHA-256 in photo upload, `BuildEventView` (GET/POST), `BuildAuditView` (GET), status/ordering filters on sessions |
+| `components/serializers.py` | +`sha256` on StepPhotoSerializer. +snapshot/timing fields on BuildSessionSerializer (read-only) |
+| `components/urls.py` | +2 URL patterns: `events/` and `audit/` |
+| `droneclear_backend/urls.py` | +1 route: `/audit/` → audit.html |
+| `guide-state.js` | +46 lines. `emitBuildEvent()`, `flushEventQueue()`, `beforeunload` sendBeacon handler |
+| `guide-runner.js` | +43 lines. Event emission at 4 hook points: step_started, step_completed, session_completed, note_saved. step_timing PATCH. "View Audit Record" button handler |
+| `guide.html` | +Build Audit sidebar link. +Completion screen "View Audit Record" button |
+| `editor.html`, `template.html`, `index.html` | +Build Audit sidebar link (each) |
+| `README.md` | +Tier 9 documentation, BuildEvent model docs, audit API endpoints, audit.js/css in architecture tables |
+
+### Current state
+- All migrations applied (`0001` through `0007`)
+- Server boots cleanly, all pages render
+- Audit page tested live: search works, recent builds populate, full audit record renders (header, timeline, step accordion with expandable details, BOM table, integrity panel with pass/warn badges)
+- Seeded with: 35 components, 1 drone model, 1 build guide (10 steps), 1 completed build session with 22 events
+- Dark mode and light mode both tested
+
+### Known limitations / future work
+1. **No real photos in test data** — the seed command fast-forwards through steps, so photo integrity shows "Warn (no photos)". A real build with camera captures will fully exercise the SHA-256 hashing and photo grid display.
+2. **Step timing shows 0s–2s** — the seed build was rapid-fire. Real builds will show meaningful timing data.
+3. **No audit PDF export yet** — Tier 10 candidate. The audit viewer is read-only HTML; exporting to a downloadable PDF (or printing) would be valuable for compliance/regulatory handoff.
+4. **Event batching is fire-and-forget** — events POST with 500ms debounce. If the server is down, events are lost. Could add IndexedDB queue for offline resilience.
+5. **Guide reference media is still URL-only** — build photos use Django `ImageField` (stored on disk), but guide step media (tutorial images, YouTube videos) are stored as URLs. Direct file upload for guide media is a Tier 10 candidate.
+
+### Architecture decisions
+- **JSONField snapshots** over separate snapshot tables — simpler for read-heavy audit queries, ~15-30KB per session, acceptable for expected build volume.
+- **Append-only model** (no PUT/PATCH/DELETE API) for BuildEvent — simpler than Django-level immutability; the API simply doesn't expose mutation endpoints.
+- **Server-side SHA-256** over client-side — prevents spoofing; hash is computed from actual file bytes on upload.
+- **Fire-and-forget event emission** with sendBeacon fallback — avoids blocking the build UX for non-critical telemetry.
+- **Standalone audit.js** — no dependency on guide-state.js or guide-runner.js. The audit page only needs `utils.js` for shared utilities (toast, escHTML, getCookie).

@@ -1,8 +1,14 @@
+import hashlib
+
 from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.db.models import Count
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from .models import Category, Component, DroneModel, BuildGuide, BuildGuideStep, BuildSession, StepPhoto
+from .models import (
+    Category, Component, DroneModel,
+    BuildGuide, BuildGuideStep, BuildSession, StepPhoto, BuildEvent,
+)
 from .serializers import (
     CategorySerializer, ComponentSerializer, DroneModelSerializer,
     BuildGuideListSerializer, BuildGuideDetailSerializer,
@@ -262,6 +268,12 @@ class BuildSessionViewSet(viewsets.ModelViewSet):
         guide_pid = self.request.query_params.get('guide', None)
         if guide_pid:
             qs = qs.filter(guide__pid=guide_pid)
+        status_filter = self.request.query_params.get('status', None)
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        ordering = self.request.query_params.get('ordering', None)
+        if ordering in ('-completed_at', '-started_at', 'started_at', 'completed_at'):
+            qs = qs.order_by(ordering)
         return qs
 
     def perform_create(self, serializer):
@@ -280,7 +292,42 @@ class BuildSessionViewSet(viewsets.ModelViewSet):
             except ValueError:
                 seq = 1
         sn = f'{prefix}{seq:04d}'
-        serializer.save(serial_number=sn)
+
+        guide = serializer.validated_data['guide']
+
+        # ── Audit: snapshot guide + steps at build start ──
+        guide_data = BuildGuideDetailSerializer(guide).data
+
+        # ── Audit: snapshot all referenced components ──
+        all_pids = set()
+        for step in guide.steps.all():
+            for pid in (step.required_components or []):
+                all_pids.add(pid)
+        if guide.drone_model and guide.drone_model.relations:
+            for pid in guide.drone_model.relations.values():
+                if pid:
+                    all_pids.add(pid)
+        components = Component.objects.filter(pid__in=all_pids)
+        comp_data = {c.pid: ComponentSerializer(c).data for c in components}
+
+        session = serializer.save(
+            serial_number=sn,
+            guide_snapshot=guide_data,
+            component_snapshot=comp_data,
+        )
+
+        # ── Audit: emit session_started event ──
+        BuildEvent.objects.create(
+            session=session,
+            event_type='session_started',
+            data={
+                'guide_pid': guide.pid,
+                'guide_name': guide.name,
+                'builder_name': session.builder_name,
+                'component_count': len(comp_data),
+                'step_count': guide.steps.count(),
+            },
+        )
 
 
 class StepPhotoUploadView(APIView):
@@ -318,6 +365,122 @@ class StepPhotoUploadView(APIView):
         except BuildGuideStep.DoesNotExist:
             return Response({'error': 'Step not found in this guide'}, status=status.HTTP_404_NOT_FOUND)
 
-        photo = StepPhoto.objects.create(session=session, step=step, image=image, notes=notes)
+        # ── Audit: compute SHA-256 for integrity verification ──
+        image_hash = hashlib.sha256()
+        for chunk in image.chunks():
+            image_hash.update(chunk)
+        sha256_hex = image_hash.hexdigest()
+        image.seek(0)  # Reset after hashing
+
+        photo = StepPhoto.objects.create(
+            session=session, step=step, image=image,
+            notes=notes, sha256=sha256_hex,
+        )
+
+        # ── Audit: emit photo_captured event ──
+        BuildEvent.objects.create(
+            session=session,
+            event_type='photo_captured',
+            step_order=step.order,
+            data={
+                'photo_id': photo.id,
+                'sha256': sha256_hex,
+                'filename': image.name,
+            },
+        )
+
         serializer = StepPhotoSerializer(photo, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------------------------
+# Build Audit endpoints
+# ---------------------------------------------------------------------------
+
+class BuildEventView(APIView):
+    """
+    POST /api/build-sessions/<sn>/events/  → log an immutable audit event
+    GET  /api/build-sessions/<sn>/events/  → list events for session
+    """
+    ALLOWED_TYPES = [t[0] for t in BuildEvent.EVENT_TYPES]
+
+    def post(self, request, sn):
+        session = get_object_or_404(BuildSession, serial_number=sn)
+        event_type = request.data.get('event_type')
+        step_order = request.data.get('step_order')
+        data = request.data.get('data', {})
+
+        if event_type not in self.ALLOWED_TYPES:
+            return Response(
+                {'error': f'Invalid event_type. Allowed: {self.ALLOWED_TYPES}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        event = BuildEvent.objects.create(
+            session=session,
+            event_type=event_type,
+            step_order=step_order,
+            data=data,
+        )
+        return Response({
+            'id': event.id,
+            'event_type': event.event_type,
+            'timestamp': event.timestamp.isoformat(),
+            'step_order': event.step_order,
+        }, status=status.HTTP_201_CREATED)
+
+    def get(self, request, sn):
+        session = get_object_or_404(BuildSession, serial_number=sn)
+        events = BuildEvent.objects.filter(session=session).order_by('timestamp')
+        return Response([{
+            'id': e.id,
+            'event_type': e.event_type,
+            'timestamp': e.timestamp.isoformat(),
+            'step_order': e.step_order,
+            'data': e.data,
+        } for e in events])
+
+
+class BuildAuditView(APIView):
+    """
+    GET /api/audit/<sn>/  → complete audit record for a build session
+    """
+    def get(self, request, sn):
+        session = get_object_or_404(
+            BuildSession.objects.select_related('guide'),
+            serial_number=sn,
+        )
+
+        photos = StepPhoto.objects.filter(session=session).select_related('step').order_by('captured_at')
+        events = BuildEvent.objects.filter(session=session).order_by('timestamp')
+
+        return Response({
+            'serial_number': session.serial_number,
+            'status': session.status,
+            'builder_name': session.builder_name,
+            'started_at': session.started_at.isoformat(),
+            'completed_at': session.completed_at.isoformat() if session.completed_at else None,
+            'guide_pid': session.guide.pid if session.guide else None,
+            'guide_name': session.guide.name if session.guide else None,
+            'guide_snapshot': session.guide_snapshot,
+            'component_snapshot': session.component_snapshot,
+            'step_timing': session.step_timing,
+            'step_notes': session.step_notes,
+            'component_checklist': session.component_checklist,
+            'photos': [{
+                'id': p.id,
+                'step_order': p.step.order,
+                'step_title': p.step.title,
+                'image_url': request.build_absolute_uri(p.image.url) if p.image else None,
+                'sha256': p.sha256,
+                'captured_at': p.captured_at.isoformat(),
+                'notes': p.notes,
+            } for p in photos],
+            'events': [{
+                'id': e.id,
+                'event_type': e.event_type,
+                'timestamp': e.timestamp.isoformat(),
+                'step_order': e.step_order,
+                'data': e.data,
+            } for e in events],
+        })
