@@ -408,7 +408,7 @@
                             <div class="glass-panel guide-editor-steps-panel">
                                 <div class="guide-editor-steps-header">
                                     <h3 class="guide-editor-section-title">Steps</h3>
-                                    <button class="btn btn-outline" id="btn-add-step" style="padding:5px 10px; font-size:12px;">
+                                    <button class="btn btn-primary btn-add-step" id="btn-add-step">
                                         <i class="ph ph-plus"></i> Add Step
                                     </button>
                                 </div>
@@ -417,8 +417,11 @@
 
                             <!-- Step detail (shown when a step is selected) -->
                             <div class="glass-panel guide-editor-step-detail hidden" id="editor-step-detail">
-                                <h3 class="guide-editor-section-title">Step Detail</h3>
-                                <form id="step-detail-form" class="editor-form">
+                                <div class="guide-editor-collapse-header" onclick="toggleStepDetailCollapse(this)">
+                                    <h3 class="guide-editor-section-title" style="margin-bottom:0;">Step Detail</h3>
+                                    <i class="ph ph-caret-up guide-editor-collapse-icon"></i>
+                                </div>
+                                <form id="step-detail-form" class="editor-form guide-editor-collapsible">
                                     <div class="form-group">
                                         <label class="form-label">Order</label>
                                         <input class="form-input" type="number" id="se-order" min="1" value="1">
@@ -484,14 +487,14 @@
 
                             <!-- Save / delete actions -->
                             <div class="guide-editor-actions">
-                                <button class="btn btn-danger" id="btn-delete-guide">
-                                    <i class="ph ph-trash"></i> Delete Guide
+                                <button class="btn btn-editor-delete" id="btn-delete-guide">
+                                    <i class="ph ph-trash"></i> Delete
                                 </button>
-                                <div style="display:flex; gap:8px;">
-                                    <button class="btn btn-outline" id="btn-preview-guide">
+                                <div class="guide-editor-actions-right">
+                                    <button class="btn btn-outline btn-editor-preview" id="btn-preview-guide">
                                         <i class="ph ph-eye"></i> Preview
                                     </button>
-                                    <button class="btn btn-primary" id="btn-save-guide">
+                                    <button class="btn btn-primary btn-editor-save" id="btn-save-guide">
                                         <i class="ph ph-floppy-disk"></i> Save Guide
                                     </button>
                                 </div>

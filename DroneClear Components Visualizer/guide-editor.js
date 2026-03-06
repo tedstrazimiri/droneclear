@@ -128,6 +128,8 @@ async function createNewGuide() {
 }
 
 // ── Steps list ───────────────────────────────────────────
+let _dragStepIndex = -1;
+
 function renderEditorStepsList() {
     const list = guideDOM['editor-steps-list'];
     if (!list) return;
@@ -139,7 +141,11 @@ function renderEditorStepsList() {
 
     list.innerHTML = _editorSteps.map((s, i) => `
         <div class="guide-editor-step-item${guideState.editingStepIndex === i ? ' active' : ''}"
+             draggable="true" data-step-index="${i}"
              onclick="selectEditorStep(${i})">
+            <span class="guide-editor-step-drag-handle" title="Drag to reorder">
+                <i class="ph ph-dots-six-vertical"></i>
+            </span>
             <span class="guide-editor-step-item-order">${s.order}</span>
             <span class="guide-editor-step-item-title">${escHTML(s.title || 'Untitled')}</span>
             <span class="guide-editor-step-item-type">${s.step_type || 'assembly'}</span>
@@ -148,6 +154,96 @@ function renderEditorStepsList() {
             </button>
         </div>
     `).join('');
+
+    // Wire drag-and-drop handlers
+    list.querySelectorAll('.guide-editor-step-item').forEach(el => {
+        el.addEventListener('dragstart', onStepDragStart);
+        el.addEventListener('dragover', onStepDragOver);
+        el.addEventListener('dragenter', onStepDragEnter);
+        el.addEventListener('dragleave', onStepDragLeave);
+        el.addEventListener('drop', onStepDrop);
+        el.addEventListener('dragend', onStepDragEnd);
+    });
+}
+
+// ── Drag-and-drop step reordering ────────────────────────
+
+function onStepDragStart(e) {
+    _dragStepIndex = parseInt(e.currentTarget.dataset.stepIndex);
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', _dragStepIndex);
+}
+
+function onStepDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function onStepDragEnter(e) {
+    e.preventDefault();
+    const target = e.currentTarget;
+    const targetIndex = parseInt(target.dataset.stepIndex);
+    if (targetIndex === _dragStepIndex) return;
+
+    // Clear any existing indicators
+    document.querySelectorAll('.guide-editor-step-item').forEach(el => {
+        el.classList.remove('drag-over-above', 'drag-over-below');
+    });
+
+    // Show drop indicator above or below based on position
+    if (targetIndex < _dragStepIndex) {
+        target.classList.add('drag-over-above');
+    } else {
+        target.classList.add('drag-over-below');
+    }
+}
+
+function onStepDragLeave(e) {
+    // Only remove if leaving the element entirely (not entering a child)
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+        e.currentTarget.classList.remove('drag-over-above', 'drag-over-below');
+    }
+}
+
+function onStepDrop(e) {
+    e.preventDefault();
+    const dropIndex = parseInt(e.currentTarget.dataset.stepIndex);
+    if (_dragStepIndex < 0 || dropIndex === _dragStepIndex) return;
+
+    // Save current step form before reordering
+    if (guideState.editingStepIndex >= 0) readStepDetailForm();
+
+    // Reorder the array
+    const [moved] = _editorSteps.splice(_dragStepIndex, 1);
+    _editorSteps.splice(dropIndex, 0, moved);
+
+    // Renumber order fields
+    _editorSteps.forEach((s, i) => { s.order = i + 1; });
+
+    // Update editingStepIndex to follow the selected step
+    if (guideState.editingStepIndex === _dragStepIndex) {
+        guideState.editingStepIndex = dropIndex;
+    } else if (guideState.editingStepIndex >= 0) {
+        // Recalculate: find where the previously-selected step ended up
+        const wasEditing = guideState.editingStepIndex;
+        if (_dragStepIndex < wasEditing && dropIndex >= wasEditing) {
+            guideState.editingStepIndex--;
+        } else if (_dragStepIndex > wasEditing && dropIndex <= wasEditing) {
+            guideState.editingStepIndex++;
+        }
+    }
+
+    _dragStepIndex = -1;
+    renderEditorStepsList();
+}
+
+function onStepDragEnd(e) {
+    _dragStepIndex = -1;
+    // Clean up all drag classes
+    document.querySelectorAll('.guide-editor-step-item').forEach(el => {
+        el.classList.remove('dragging', 'drag-over-above', 'drag-over-below');
+    });
 }
 
 function addEditorStep() {
@@ -618,6 +714,13 @@ function getSelectedChecklistFields() {
     const container = guideDOM['ge-checklist-fields'];
     if (!container) return DEFAULT_CHECKLIST_FIELDS;
     return [...container.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.value);
+}
+
+// ── Collapsible step detail ──────────────────────────────
+function toggleStepDetailCollapse(header) {
+    header.classList.toggle('collapsed');
+    const body = header.nextElementSibling;
+    if (body) body.classList.toggle('collapsed');
 }
 
 // ── Helpers ──────────────────────────────────────────────
