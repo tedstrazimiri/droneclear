@@ -41,7 +41,13 @@ Step-by-step guided drone assembly module. After a user creates a parts recipe i
 - **Safety Warnings**: Amber-highlighted warning boxes on steps involving soldering, high voltage, or other hazards. Can be toggled in settings.
 - **Betaflight CLI Viewer**: Dark terminal-styled code block for firmware configuration steps, with one-click copy to clipboard.
 - **3D STL Viewer**: Three.js-powered 3D model viewer for steps involving 3D-printed parts. Auto-centres and scales models, supports orbit controls.
-- **Guide Editor**: Dedicated authoring page (Edit mode toggle) with full CRUD for guides and their steps. Split-panel layout: guide list on left, detail form on right.
+- **Media Carousel**: Multi-image/video carousel per step with CSS `translateX` sliding, dot indicators, prev/next arrows, and caption bar. Supports YouTube, Vimeo (auto-converted to embed URLs), and direct image/video URLs. Single-item steps auto-hide navigation chrome via `[data-count="1"]` CSS selector.
+- **Lightbox Viewer**: Full-screen media viewer (95vw/95vh) with dark backdrop blur, keyboard navigation (Arrow keys, Escape), and synced dot/caption display. Opens from carousel expand button or direct image click.
+- **Step Transitions & Animations**: Smooth CSS keyframe transitions between steps with staggered entry animations for content, media, and extras panels.
+- **Build Timer**: Dual stopwatch showing total build elapsed time and per-step elapsed time. Updates every second via `setInterval`. Per-step times are accumulated in `guideState.stepElapsed` and displayed alongside step time estimates.
+- **Step Notes**: Per-step note-taking textarea with auto-save (debounced 1s) to `guideState.session.step_notes[stepOrder]`. Persisted via PATCH to session API.
+- **Markdown & Checklists**: Step descriptions support markdown-style checklists (`- [ ] item`). Rendered as interactive checkboxes tracked in `guideState.stepChecklists`. Plain markdown formatting (bold, headers, code, links) also rendered.
+- **Guide Editor**: Dedicated authoring interface (Edit mode toggle). Guide list moved to sidebar panel for full-width editing. Media list editor per step with type/URL/caption rows and add/remove support. Full CRUD for guides and their steps.
 - **User Settings**: Configurable photo quality (640/1280/1920px), auto-advance after photo, and safety warning visibility. Persisted to `localStorage`.
 
 **Build Session Lifecycle**:
@@ -49,7 +55,7 @@ Step-by-step guided drone assembly module. After a user creates a parts recipe i
 Selection → Overview (checklist) → Start Build → Step 1..N (photos at each) → Complete → Summary
 ```
 
-Each session records: serial number, guide reference, builder name, start/completion timestamps, current step, status (`in_progress` / `completed` / `abandoned`), component checklist state, and all captured photos.
+Each session records: serial number, guide reference, builder name, start/completion timestamps, current step, status (`in_progress` / `completed` / `abandoned`), component checklist state, per-step notes (`step_notes` JSONField), and all captured photos.
 
 ---
 
@@ -74,10 +80,10 @@ Vanilla JS SPA — no framework. Modular JS files loaded in order:
 | `template.js` | Master Schema editor logic (template page only) |
 | `guide-state.js` | Build Guide global state, DOM refs, settings, API helpers |
 | `guide-selection.js` | Guide card grid, overview rendering, session start |
-| `guide-runner.js` | Step-by-step engine, navigation, session completion |
+| `guide-runner.js` | Step-by-step engine, navigation, media carousel/lightbox, timer, notes, markdown, session completion |
 | `guide-camera.js` | Camera capture (getUserMedia + file fallback), photo upload |
 | `guide-viewer.js` | Three.js STL/3MF viewer wrapper with auto-centre/scale |
-| `guide-editor.js` | Guide authoring UI: CRUD for guides and steps |
+| `guide-editor.js` | Guide authoring UI: CRUD for guides/steps, media list editor |
 
 **CSS Architecture** (5 files):
 - `base.css` — CSS variables, theme (light/dark), typography
@@ -87,6 +93,14 @@ Vanilla JS SPA — no framework. Modular JS files loaded in order:
 - `guide.css` — Build Guide module: card grid, runner, camera modal, editor, settings panel
 
 **Third-Party**: CodeMirror v5 (JSON editor), Phosphor Icons (`ph`), Three.js r128 + STLLoader + OrbitControls (guide page only, CDN-loaded)
+
+**Media Carousel Engine** (`guide-runner.js`, lines 350-490):
+- `detectMediaType(url)` — sniffs YouTube/Vimeo URLs for iframe embed, mp4/webm for `<video>`, everything else as `<img>`
+- `toEmbedUrl(url)` — converts `youtube.com/watch?v=X` → `youtube.com/embed/X`, `vimeo.com/ID` → `player.vimeo.com/video/ID`
+- `renderStepMedia(step)` — builds slides from `step.media[]`, renders dot indicators, sets `data-count` attribute for CSS conditional display, handles backward compatibility with legacy `step.reference_image`
+- `goToMedia(index)` — CSS `translateX` on `.guide-media-track`, updates active dot, syncs caption, updates lightbox if open
+- `openLightbox(index)` / `closeLightbox()` — toggle `#media-lightbox` overlay with backdrop blur
+- Keyboard: Escape → close lightbox, ArrowLeft/ArrowRight → navigate (only when lightbox is open)
 
 ### Backend (Django)
 Lightweight Django + Django REST Framework.
@@ -184,7 +198,7 @@ Ordered steps within a guide. Each step has a type that controls which UI elemen
 | `title` | `CharField(255)` | Step title |
 | `description` | `TextField` | Assembly instructions |
 | `safety_warning` | `TextField` | Displayed in amber warning box |
-| `reference_image` | `CharField(500)` | URL to reference photo |
+| `media` | `JSONField(list)` | Media array: `[{type, url, caption}]` |
 | `stl_file` | `CharField(500)` | URL to STL for 3D viewer |
 | `betaflight_cli` | `TextField` | CLI dump for firmware steps |
 | `step_type` | `CharField` | `assembly` / `soldering` / `firmware` / `3d_print` / `inspection` |
@@ -203,6 +217,7 @@ Tracks an individual build attempt. Serial number is auto-generated server-side.
 | `current_step` | `IntegerField` | Last active step index |
 | `status` | `CharField` | `in_progress` / `completed` / `abandoned` |
 | `notes` | `TextField` | Builder notes |
+| `step_notes` | `JSONField(dict)` | Per-step notes: `{ "1": "note text", ... }` |
 | `component_checklist` | `JSONField(dict)` | `{ "MTR-0001": true, ... }` |
 | `builder_name` | `CharField(255)` | Who performed the build |
 
@@ -221,13 +236,39 @@ Photos captured during a build session, linked to specific steps. Used for audit
 
 The guide editor (`/guide/` → Edit mode) provides a dedicated authoring interface:
 
-1. **Guide List** (left panel): All existing guides with PID and step count. Click to edit, or "+ New" to create.
-2. **Guide Metadata Form**: PID, name, difficulty, drone class, estimated time, thumbnail URL, description, required tools (comma-separated).
-3. **Steps Manager**: Ordered list of steps with drag-to-reorder support. Click a step to edit its detail form. "+ Add Step" appends a new step.
-4. **Step Detail Form**: Title, type, time, description, safety warning, reference image URL, STL URL, Betaflight CLI, required component PIDs.
+1. **Guide List** (sidebar panel): All existing guides with PID and step count, displayed in the left sidebar below session info. Click to edit, or "+ New" to create.
+2. **Guide Metadata Form** (full-width): PID, name, difficulty, drone class, estimated time, thumbnail URL, description, required tools (comma-separated). Increased padding (24px) for comfortable editing.
+3. **Steps Manager**: Ordered list of steps with click-to-select. "+ Add Step" appends a new step. Remove button (X) on each step.
+4. **Step Detail Form**: Title, type, time, description, safety warning, **media list editor** (add/remove rows of type/URL/caption), STL URL, Betaflight CLI, required component PIDs.
 5. **Actions**: Save (PUT to API with nested steps), Delete, Preview (saves then switches to Browse mode).
 
 Steps are saved as a nested array in the guide PUT payload — the API replaces all steps atomically on each save.
+
+### Runner Layout
+
+The step runner uses a single-column flex layout:
+
+```
+┌─────────────────────────────────────────┐
+│ Progress Bar (full width)               │
+├─────────────────────────────────────────┤
+│ Step Header (number, type, timer)       │
+│ Step Title                              │
+│ Safety Warning (if present)             │
+│ Step Description (markdown/checklists)  │
+│ Media Carousel (if media attached)      │
+│ STL Viewer / CLI Block (if applicable)  │
+├────────────────────┬────────────────────┤
+│ Photo Gallery      │ Step Notes         │
+│ (camera capture)   │ (auto-save)        │
+├────────────────────┴────────────────────┤
+│ [Prev 15%] [  Step X of N  ] [Next 15%]│
+└─────────────────────────────────────────┘
+```
+
+- **Photos + Notes** sit in a 2-column grid row (`guide-runner-extras`) below step content
+- **Nav bar** uses CSS grid: `minmax(100px, 15%) 1fr minmax(100px, 15%)` for proportional button sizing
+- **Media carousel** is hidden when step has no media items
 
 ### Seed Data
 
@@ -237,7 +278,7 @@ A management command creates a sample guide for testing:
 python manage.py seed_guides
 ```
 
-This seeds a **10-step "5-inch Freestyle Quad Build"** guide covering: Frame Assembly → Motor Mounting → ESC Soldering → FC Stack → Receiver Wiring → VTX Installation → Camera Mounting → 3D-Printed Accessories → Betaflight Flash & Tune → Final Inspection. Includes safety warnings on soldering/VTX steps and a Betaflight CLI dump.
+This seeds a **10-step "5-inch Freestyle Quad Build"** guide covering: Frame Assembly → Motor Mounting → ESC Soldering → FC Stack → Receiver Wiring → VTX Installation → Camera Mounting → 3D-Printed Accessories → Betaflight Flash & Tune → Final Inspection. Includes safety warnings on soldering/VTX steps, a Betaflight CLI dump, and **multi-media test data** — steps with multiple images (for carousel testing), a YouTube video embed, and steps with no media (graceful empty state).
 
 ---
 
@@ -390,7 +431,21 @@ The import endpoint (`POST /api/import/parts/`) performs upsert by PID and retur
 - ✅ Three.js STL viewer: auto-centre, orbit controls, responsive resize
 - ✅ Seed data: 10-step "5-inch Freestyle Quad Build" management command
 
-### 🔜 Tier 7 Candidates
+**Tier 7** — Build Guide UX overhaul + Media system:
+- ✅ **Media carousel**: Replaced single `reference_image` CharField with `media` JSONField (`[{type, url, caption}]`). CSS `translateX` carousel with prev/next arrows, dot indicators, expand button, caption bar. Auto-hides navigation on single-item steps.
+- ✅ **Lightbox viewer**: Full-screen (95vw/95vh) media overlay with dark backdrop blur, prev/next arrows, keyboard navigation (Escape, Arrow keys), synced dots and captions.
+- ✅ **Video embed support**: Auto-detects YouTube/Vimeo URLs and converts to embeddable iframe URLs. Direct mp4/webm treated as `<video>` elements.
+- ✅ **Editor media list**: Per-step media authoring with type select (image/video), URL input, caption input, add/remove buttons. Reads DOM inputs back to step data on save.
+- ✅ **Data migration**: `0006_replace_reference_image_with_media.py` — three-phase: AddField(media) → RunPython(convert existing reference_image values) → RemoveField(reference_image).
+- ✅ **Step transitions/animations**: CSS keyframe staggered entry for step content, media carousel, and extras panels on step change.
+- ✅ **Build timer**: Dual stopwatch (total build + per-step elapsed), `setInterval`-driven, accumulated in `guideState.stepElapsed`.
+- ✅ **Step notes**: Per-step textarea with debounced auto-save (1s) to session API via PATCH.
+- ✅ **Markdown & checklists**: Step descriptions render markdown formatting (bold, headers, code, links) and interactive `- [ ]` checklists tracked in `guideState.stepChecklists`.
+- ✅ **Runner layout overhaul**: Changed from 2-column grid (cramped right panel) to single-column flex with photos/notes in a horizontal `guide-runner-extras` row below step content.
+- ✅ **Nav bar proportional layout**: Changed from flex (oversized Previous button) to CSS grid: `minmax(100px, 15%) 1fr minmax(100px, 15%)`.
+- ✅ **Editor UI overhaul**: Guide list moved to sidebar panel, editor form area made full-width, increased padding to 24px, form gap to 14px.
+
+### 🔜 Tier 8 Candidates
 - **Component Cloning**: Duplicate an existing part or schema category to speed up data entry.
 - **Build Export**: Export a completed build to CSV or PDF from the wizard.
 - **Build Guide → Model Builder Link**: Auto-populate guide component checklist from a linked DroneModel's relations.
@@ -398,6 +453,9 @@ The import endpoint (`POST /api/import/parts/`) performs upsert by PID and retur
 - **Audit Logging**: Track who changed what in the schema and parts library.
 - **Tag Vocabulary**: Controlled tag taxonomy per category instead of free-form strings.
 - **Additional data sources**: Scrape GetFPV, RaceDayQuads, or manufacturer sites for broader coverage.
+- **Drag-and-drop step reordering**: Sortable step list in the guide editor.
+- **Media upload**: Direct file upload for step media (currently URL-only).
+- **Build guide versioning**: Track guide revisions so sessions reference a specific version.
 
 ---
 

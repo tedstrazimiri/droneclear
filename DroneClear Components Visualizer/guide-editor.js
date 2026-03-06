@@ -20,6 +20,7 @@ function wireEditorButtons() {
     guideDOM['btn-save-guide']?.addEventListener('click', saveGuide);
     guideDOM['btn-delete-guide']?.addEventListener('click', deleteGuide);
     guideDOM['btn-preview-guide']?.addEventListener('click', previewGuide);
+    document.getElementById('btn-add-media')?.addEventListener('click', addEditorMedia);
 }
 
 // ── Load guide list for editor sidebar ───────────────────
@@ -136,7 +137,7 @@ function addEditorStep() {
         title: '',
         description: '',
         safety_warning: '',
-        reference_image: '',
+        media: [],
         stl_file: '',
         betaflight_cli: '',
         step_type: 'assembly',
@@ -177,7 +178,7 @@ function selectEditorStep(index) {
     setVal('se-time', step.estimated_time_minutes || 5);
     setVal('se-description', step.description || '');
     setVal('se-safety', step.safety_warning || '');
-    setVal('se-image', step.reference_image || '');
+    renderEditorMediaList(step.media || []);
     setVal('se-stl', step.stl_file || '');
     setVal('se-cli', step.betaflight_cli || '');
     setVal('se-components', (step.required_components || []).join(', '));
@@ -196,7 +197,7 @@ function readStepDetailForm() {
     s.estimated_time_minutes = parseInt(getVal('se-time')) || 5;
     s.description = getVal('se-description');
     s.safety_warning = getVal('se-safety');
-    s.reference_image = getVal('se-image');
+    readEditorMedia();
     s.stl_file = getVal('se-stl');
     s.betaflight_cli = getVal('se-cli');
     s.required_components = getVal('se-components').split(',').map(s => s.trim()).filter(Boolean);
@@ -279,6 +280,70 @@ async function previewGuide() {
 
     // Load and show overview
     await selectGuide(guide.pid);
+}
+
+// ── Media list editor ────────────────────────────────────
+
+function renderEditorMediaList(media) {
+    const list = document.getElementById('se-media-list');
+    if (!list) return;
+
+    if (!media || !media.length) {
+        list.innerHTML = '<p style="font-size:12px; color:var(--text-muted);">No media added yet.</p>';
+        return;
+    }
+
+    list.innerHTML = media.map((item, i) => `
+        <div class="guide-editor-media-item" data-index="${i}">
+            <select class="form-input" data-field="type" style="width:80px; font-size:12px; padding:4px;">
+                <option value="image"${item.type === 'image' ? ' selected' : ''}>Image</option>
+                <option value="video"${item.type === 'video' ? ' selected' : ''}>Video</option>
+            </select>
+            <input class="form-input" type="text" data-field="url" value="${escHTML(item.url || '')}"
+                   placeholder="URL..." style="flex:1; font-size:12px; padding:4px 8px;">
+            <input class="form-input" type="text" data-field="caption" value="${escHTML(item.caption || '')}"
+                   placeholder="Caption (optional)" style="width:140px; font-size:12px; padding:4px 8px;">
+            <button class="guide-editor-step-item-remove" onclick="removeEditorMedia(${i})" type="button">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+function addEditorMedia() {
+    const idx = guideState.editingStepIndex;
+    if (idx < 0 || !_editorSteps[idx]) return;
+    if (!_editorSteps[idx].media) _editorSteps[idx].media = [];
+    // Read current values first before adding
+    readEditorMedia();
+    _editorSteps[idx].media.push({ type: 'image', url: '', caption: '' });
+    renderEditorMediaList(_editorSteps[idx].media);
+}
+
+function removeEditorMedia(mediaIndex) {
+    const idx = guideState.editingStepIndex;
+    if (idx < 0 || !_editorSteps[idx]?.media) return;
+    readEditorMedia();
+    _editorSteps[idx].media.splice(mediaIndex, 1);
+    renderEditorMediaList(_editorSteps[idx].media);
+}
+
+function readEditorMedia() {
+    const idx = guideState.editingStepIndex;
+    if (idx < 0 || !_editorSteps[idx]) return;
+
+    const list = document.getElementById('se-media-list');
+    if (!list) return;
+
+    const items = list.querySelectorAll('.guide-editor-media-item');
+    const media = [];
+    items.forEach(item => {
+        const type = item.querySelector('[data-field="type"]')?.value || 'image';
+        const url = item.querySelector('[data-field="url"]')?.value?.trim() || '';
+        const caption = item.querySelector('[data-field="caption"]')?.value?.trim() || '';
+        if (url) media.push({ type, url, caption });
+    });
+    _editorSteps[idx].media = media;
 }
 
 // ── Helpers ──────────────────────────────────────────────

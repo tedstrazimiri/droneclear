@@ -87,7 +87,7 @@ class BuildGuideStep(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     safety_warning = models.TextField(blank=True)
-    reference_image = models.CharField(max_length=500, blank=True)
+    media = models.JSONField(default=list, blank=True)  # [{type, url, caption}]
     stl_file = models.CharField(max_length=500, blank=True)
     betaflight_cli = models.TextField(blank=True)
     step_type = models.CharField(max_length=50, choices=STEP_TYPE_CHOICES, default='assembly')
@@ -117,6 +117,7 @@ class BuildSession(models.Model):
     current_step = models.IntegerField(default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in_progress')
     notes = models.TextField(blank=True)
+    step_notes = models.JSONField(default=dict, blank=True)  # { "stepOrder": "note text" }
     component_checklist = models.JSONField(default=dict, blank=True)
     builder_name = models.CharField(max_length=255, blank=True)
 

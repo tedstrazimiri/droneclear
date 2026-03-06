@@ -30,6 +30,10 @@ function switchMode(mode) {
     guideDOM['btn-mode-browse']?.classList.toggle('active', mode === 'browse');
     guideDOM['btn-mode-edit']?.classList.toggle('active', mode === 'edit');
 
+    // Show/hide sidebar guide list for edit mode
+    const sidebarList = guideDOM['sidebar-guide-list-panel'];
+    if (sidebarList) sidebarList.style.display = mode === 'edit' ? '' : 'none';
+
     if (mode === 'edit') {
         setGuidePhase('editing');
         if (typeof initGuideEditor === 'function') initGuideEditor();
@@ -172,8 +176,11 @@ async function startBuild() {
 
         guideState.currentStepIndex = 0;
         guideState.photos = {};
+        guideState.stepChecklists = {};
+        if (!guideState.session.step_notes) guideState.session.step_notes = {};
         setGuidePhase('running');
         renderStep(0);
+        startBuildTimer();
         updateSidebarSession();
     } catch (err) {
         console.error('Failed to start build:', err);

@@ -79,6 +79,19 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Guide list (shown in edit mode) -->
+            <div class="sidebar-nav" id="sidebar-guide-list-panel" style="display:none;">
+                <div class="guide-sidebar-list-section">
+                    <div class="guide-sidebar-list-header">
+                        <h3>Guides</h3>
+                        <button class="btn btn-primary" id="btn-new-guide" style="padding:4px 10px; font-size:11px;">
+                            <i class="ph ph-plus"></i> New
+                        </button>
+                    </div>
+                    <div id="editor-guide-list" class="guide-editor-guide-list"></div>
+                </div>
+            </div>
         </aside>
 
         <!-- ─────────────── Main content ─────────────── -->
@@ -203,6 +216,14 @@
                             <span class="guide-step-number" id="runner-step-number">Step 1</span>
                             <span class="guide-step-type-badge" id="runner-step-type">assembly</span>
                             <span class="guide-step-time"><i class="ph ph-clock"></i> <span id="runner-step-time">5 min</span></span>
+                            <div class="guide-step-timer" id="runner-step-timer">
+                                <span class="guide-timer-build" id="timer-build-elapsed" title="Total build time">
+                                    <i class="ph ph-timer"></i> <span id="timer-build-value">00:00</span>
+                                </span>
+                                <span class="guide-timer-step" id="timer-step-elapsed" title="Time on this step">
+                                    <i class="ph ph-hourglass-medium"></i> <span id="timer-step-value">00:00</span>
+                                </span>
+                            </div>
                         </div>
 
                         <h2 id="runner-step-title" class="guide-step-title">—</h2>
@@ -216,9 +237,22 @@
                         <!-- Instructions -->
                         <div id="runner-step-description" class="guide-step-description"></div>
 
-                        <!-- Reference image -->
-                        <div id="runner-reference-image-wrap" class="guide-reference-image-wrap hidden">
-                            <img id="runner-reference-image" class="guide-reference-image" src="" alt="Reference">
+                        <!-- Media Carousel -->
+                        <div id="runner-media-carousel" class="guide-media-carousel hidden">
+                            <div class="guide-media-viewport">
+                                <div class="guide-media-track" id="media-track"></div>
+                            </div>
+                            <button class="guide-media-arrow guide-media-arrow--prev" id="media-prev" aria-label="Previous media">
+                                <i class="ph ph-caret-left"></i>
+                            </button>
+                            <button class="guide-media-arrow guide-media-arrow--next" id="media-next" aria-label="Next media">
+                                <i class="ph ph-caret-right"></i>
+                            </button>
+                            <div class="guide-media-dots" id="media-dots"></div>
+                            <button class="guide-media-expand" id="media-expand" aria-label="Expand media" title="Expand">
+                                <i class="ph ph-arrows-out"></i>
+                            </button>
+                            <div class="guide-media-caption" id="media-caption"></div>
                         </div>
 
                         <!-- 3D Viewer -->
@@ -238,16 +272,30 @@
                         </div>
                     </div>
 
-                    <!-- Photo capture area -->
-                    <div class="guide-photo-area">
-                        <div class="glass-panel">
-                            <h3 class="guide-photo-title"><i class="ph ph-camera"></i> Step Photos</h3>
-                            <p class="guide-photo-hint">Capture a photo at this step for your build log.</p>
-                            <button class="btn btn-primary guide-photo-btn" id="btn-take-photo">
-                                <i class="ph ph-camera"></i> Take Photo
-                            </button>
-                            <div id="runner-photo-gallery" class="guide-photo-gallery"></div>
-                        </div>
+                </div>
+
+                <!-- Photo + Notes row (below step content) -->
+                <div class="guide-runner-extras">
+                    <div class="glass-panel guide-photo-panel">
+                        <h3 class="guide-photo-title"><i class="ph ph-camera"></i> Step Photos</h3>
+                        <p class="guide-photo-hint">Capture a photo at this step for your build log.</p>
+                        <button class="btn btn-primary guide-photo-btn" id="btn-take-photo">
+                            <i class="ph ph-camera"></i> Take Photo
+                        </button>
+                        <div id="runner-photo-gallery" class="guide-photo-gallery"></div>
+                    </div>
+
+                    <div class="glass-panel guide-notes-panel">
+                        <h3 class="guide-notes-title">
+                            <i class="ph ph-note-pencil"></i> Step Notes
+                            <span class="guide-notes-status" id="notes-save-status"></span>
+                        </h3>
+                        <textarea
+                            class="form-input form-textarea guide-notes-input"
+                            id="runner-step-notes"
+                            rows="4"
+                            placeholder="Add notes for this step..."
+                        ></textarea>
                     </div>
                 </div>
 
@@ -256,7 +304,12 @@
                     <button class="btn btn-outline" id="btn-step-prev" disabled>
                         <i class="ph ph-arrow-left"></i> Previous
                     </button>
-                    <span class="guide-runner-nav-label" id="runner-nav-label">Step 1 of X</span>
+                    <div class="guide-runner-nav-center">
+                        <span class="guide-runner-nav-label" id="runner-nav-label">Step 1 of X</span>
+                        <span class="guide-timer-estimate" id="runner-time-estimate">
+                            Est: <span id="timer-estimate-value">—</span>
+                        </span>
+                    </div>
                     <button class="btn btn-primary" id="btn-step-next">
                         Next <i class="ph ph-arrow-right"></i>
                     </button>
@@ -284,18 +337,7 @@
             <!-- ═══ Phase: EDITING (guide authoring) ═══ -->
             <div id="guide-editing" class="guide-phase hidden">
                 <div class="guide-editor-layout">
-                    <!-- Left: guide list -->
-                    <div class="guide-editor-list-panel">
-                        <div class="guide-editor-list-header">
-                            <h3>Guides</h3>
-                            <button class="btn btn-primary" id="btn-new-guide" style="padding:5px 10px; font-size:12px;">
-                                <i class="ph ph-plus"></i> New
-                            </button>
-                        </div>
-                        <div id="editor-guide-list" class="guide-editor-guide-list"></div>
-                    </div>
-
-                    <!-- Right: detail editor -->
+                    <!-- Detail editor (full-width, guide list is in sidebar) -->
                     <div class="guide-editor-detail-panel">
                         <div class="guide-editor-placeholder" id="editor-placeholder">
                             <i class="ph ph-note-pencil" style="font-size:48px; color:var(--text-muted);"></i>
@@ -393,9 +435,13 @@
                                         <textarea class="form-input form-textarea" id="se-safety" rows="2"
                                             placeholder="Leave blank if none"></textarea>
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Reference Image URL</label>
-                                        <input class="form-input" type="text" id="se-image" placeholder="https://...">
+                                    <div class="form-group form-group--full">
+                                        <label class="form-label">Media (Images / Videos)</label>
+                                        <div id="se-media-list" class="guide-editor-media-list"></div>
+                                        <button type="button" class="btn btn-outline" id="btn-add-media"
+                                            style="padding:5px 10px; font-size:12px; margin-top:6px;">
+                                            <i class="ph ph-plus"></i> Add Media
+                                        </button>
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">STL File URL</label>
@@ -434,6 +480,24 @@
             </div>
 
         </main>
+    </div>
+
+    <!-- ─────────────── Media Lightbox ─────────────── -->
+    <div id="media-lightbox" class="modal-overlay hidden" style="z-index:9999;">
+        <div class="guide-lightbox-content">
+            <button class="guide-lightbox-close" id="lightbox-close" aria-label="Close">
+                <i class="ph ph-x"></i>
+            </button>
+            <button class="guide-media-arrow guide-media-arrow--prev guide-lightbox-arrow" id="lightbox-prev">
+                <i class="ph ph-caret-left"></i>
+            </button>
+            <div class="guide-lightbox-viewport" id="lightbox-viewport"></div>
+            <button class="guide-media-arrow guide-media-arrow--next guide-lightbox-arrow" id="lightbox-next">
+                <i class="ph ph-caret-right"></i>
+            </button>
+            <div class="guide-lightbox-caption" id="lightbox-caption"></div>
+            <div class="guide-media-dots guide-lightbox-dots" id="lightbox-dots"></div>
+        </div>
     </div>
 
     <!-- ─────────────── Camera Modal ─────────────── -->
@@ -500,6 +564,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/snarkdown@2.0.0/dist/snarkdown.umd.js"></script>
 
     <script src="{% static 'guide-state.js' %}"></script>
     <script src="{% static 'guide-selection.js' %}"></script>
