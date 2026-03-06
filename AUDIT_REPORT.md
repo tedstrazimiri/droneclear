@@ -119,30 +119,38 @@ The `showToast()` XSS is fixed. The following innerHTML usages still inject unes
 
 ---
 
-## Test Coverage Gap
+## Test Coverage — ✅ Implemented
 
-`components/tests.py` is completely empty. Recommended test areas by priority:
+`components/tests.py` — **72 tests across 13 test classes, all passing.** Run with `python manage.py test components`.
 
-### Critical Tests
-1. **Serial number uniqueness**: Concurrent session creation
-2. **Guide update step cascade**: Verify behavior of photo FK on step delete
-3. **BuildEvent immutability**: Verify no PUT/PATCH/DELETE exposed
-4. **Photo SHA-256 integrity**: Hash computed correctly and stored
-5. **Schema save validation**: Reject malformed schemas, accept valid ones
+### Backend Tests (72 total)
 
-### Business Logic Tests
-6. **ImportPartsView**: Upsert with valid/invalid data, missing categories, duplicates
-7. **ExportPartsView**: Round-trip import → export → import produces same data
-8. **BuildSession snapshots**: Verify guide_snapshot and component_snapshot frozen at creation
-9. **Component batch PID filtering**: `?pids=PID1,PID2` returns correct subset
-10. **Category count annotation**: Verify count matches actual component count
+| Test Class | Count | What It Covers |
+|------------|-------|----------------|
+| `CategoryModelTests` | 3 | str, slug uniqueness, verbose_name_plural |
+| `ComponentModelTests` | 4 | str, PID uniqueness, schema_data default, cascade delete |
+| `DroneModelTests` | 2 | str, relations default |
+| `BuildGuideModelTests` | 3 | str, step ordering, unique order per guide |
+| `BuildSessionModelTests` | 2 | str, status default |
+| `BuildEventModelTests` | 2 | str, timestamp ordering |
+| `CategoryAPITests` | 3 | list, count annotation, slug lookup |
+| `ComponentAPITests` | 6 | create, get by PID, filter by category, batch PID filter, update, delete |
+| `DroneModelAPITests` | 2 | create, lookup by PID |
+| `ImportExportTests` | 8 | create, upsert, missing fields, missing category, non-list rejection, export all/by-category, full round-trip |
+| `BuildGuideAPITests` | 5 | create with steps, list, detail with steps, update replaces steps, drone_model_pid linking |
+| `BuildSessionAPITests` | 8 | serial generation/increment, guide snapshot, component snapshot, session_started event, PATCH, status filter, snapshot read-only |
+| `BuildEventAPITests` | 6 | POST event, list events, invalid type rejected, PUT 405, DELETE 405, nonexistent session 404 |
+| `PhotoUploadTests` | 6 | upload, SHA-256 matches bytes, photo_captured event, missing step/image, list photos |
+| `SchemaAPITests` | 7 | GET, save valid, reject non-object/missing version/missing components/empty category/non-array |
+| `BuildAuditAPITests` | 4 | full record, 404 nonexistent, photos with hash, snapshot immutable after guide edit |
+| `MaintenanceTests` | 1 | bug report creation |
 
-### Frontend Tests (Manual/E2E)
-11. **Wizard flow**: Complete 12-step wizard, verify stack auto-skip
-12. **Compatibility engine**: Verify all 12 checks fire correctly
-13. **Guide runner**: Start build → navigate steps → capture photo → complete → verify audit
-14. **Media carousel**: Multi-image steps, YouTube/Vimeo embeds, lightbox navigation
-15. **Dark mode**: Toggle on all 5 pages, verify no missing/invisible elements
+### Remaining Frontend Tests (Manual/E2E — not yet automated)
+1. **Wizard flow**: Complete 12-step wizard, verify stack auto-skip
+2. **Compatibility engine**: Verify all 12 checks fire correctly
+3. **Guide runner**: Start build → navigate steps → capture photo → complete → verify audit
+4. **Media carousel**: Multi-image steps, YouTube/Vimeo embeds, lightbox navigation
+5. **Dark mode**: Toggle on all 5 pages, verify no missing/invisible elements
 
 ---
 
@@ -202,7 +210,7 @@ The `showToast()` XSS is fixed. The following innerHTML usages still inject unes
 
 ## Recommended Next Session Priorities
 
-1. **Write basic Django tests** — Even 10-15 tests covering serial number generation, import/export round-trip, and snapshot creation would catch regressions
+1. ~~**Write basic Django tests**~~ — **Done.** 72 tests across 13 classes. See § "Test Coverage" above.
 2. **Fix remaining innerHTML XSS** — Apply `escapeHTML()` to component cards, modal specs, and persist.js build names
 3. **Extract duplicated maintenance script** — Move the ~100-line system maintenance block (now including Reset to Golden handler) from 3 HTML files into `maintenance.js`
 4. **Add `transaction.atomic()`** — Wrap `ImportPartsView.post()`, `ResetToGoldenView.post()`, `BuildSessionViewSet.perform_create()`, and `BuildGuideDetailSerializer.update()`

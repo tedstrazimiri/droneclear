@@ -701,7 +701,7 @@ Full codebase audit across all backend (20 files) and frontend (19 JS, 6 CSS, 5 
 | **`.claude/launch.json`** | `.claude/launch.json` | Added dev server configuration for `preview_start` tooling (Django dev server on port 8000). |
 
 ### Recommended next session priorities
-1. **Write basic Django tests** — `components/tests.py` is empty. Even 10–15 tests covering serial number generation, import/export round-trip, and snapshot creation would catch regressions.
+1. ~~**Write basic Django tests**~~ — **Done.** 72 tests across 13 test classes covering models, core CRUD, import/export round-trip, serial number generation, snapshots, event immutability, photo SHA-256 integrity, schema validation, and audit endpoints. All passing.
 2. **Fix remaining innerHTML XSS** — Apply `escapeHTML()` to component cards (`components.js`), modal specs (`modal.js`), build slots (`build.js`), and saved build names (`persist.js`).
 3. **Extract duplicated maintenance script** — ~80 lines of identical inline JS is copy-pasted across `index.html`, `editor.html`, and `template.html`. Now includes Reset to Golden handler too. Should be extracted to `maintenance.js`.
 4. **Add `transaction.atomic()`** — Wrap `ImportPartsView.post()`, `ResetToGoldenView.post()`, `BuildSessionViewSet.perform_create()`, and `BuildGuideDetailSerializer.update()` for data integrity.
