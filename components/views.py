@@ -175,83 +175,51 @@ class ResetToGoldenView(APIView):
     """
     POST /api/maintenance/reset-to-golden/
     Wipes all components, drone models, and categories then re-seeds
-    from the golden examples in drone_parts_schema_v3.json.
+    from the golden parts database in docs/golden_parts_db_seed/.
     """
     def post(self, request):
         try:
-            schema_path = os.path.join(settings.BASE_DIR, 'drone_parts_schema_v3.json')
-            if not os.path.exists(schema_path):
-                return Response(
-                    {"error": "Schema file not found: drone_parts_schema_v3.json"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-
-            with open(schema_path, 'r', encoding='utf-8') as f:
-                schema = json.load(f)
-
-            # Core fields stored directly on the Component model
-            CORE_KEYS = {
-                'pid', 'name', 'manufacturer', 'description', 'link',
-                'image_file', 'manual_link', 'approx_price',
-            }
-
-            # Wipe existing data
-            deleted_components = Component.objects.count()
-            deleted_models = DroneModel.objects.count()
-            Component.objects.all().delete()
-            DroneModel.objects.all().delete()
-            Category.objects.all().delete()
-
-            # Seed categories and golden example components
-            components_created = 0
-            for cat_slug, items in schema.get('components', {}).items():
-                category = Category.objects.create(
-                    name=cat_slug.replace('_', ' ').title(),
-                    slug=cat_slug,
-                )
-                for item in items:
-                    pid = item.get('pid')
-                    if not pid:
-                        continue
-                    schema_data = {k: v for k, v in item.items() if k not in CORE_KEYS}
-                    Component.objects.create(
-                        pid=pid,
-                        category=category,
-                        name=item.get('name', ''),
-                        manufacturer=item.get('manufacturer', 'Unknown'),
-                        description=item.get('description', ''),
-                        link=item.get('link', ''),
-                        image_file=item.get('image_file', ''),
-                        manual_link=item.get('manual_link', ''),
-                        schema_data=schema_data,
-                    )
-                    components_created += 1
-
-            # Seed golden drone models
-            models_created = 0
-            for model_data in schema.get('drone_models', []):
-                pid = model_data.get('pid')
-                if not pid:
-                    continue
-                DroneModel.objects.create(
-                    pid=pid,
-                    name=model_data.get('name', ''),
-                    description=model_data.get('description', ''),
-                    image_file=model_data.get('image_file', ''),
-                    pdf_file=model_data.get('pdf_file', ''),
-                    vehicle_type=model_data.get('vehicle_type', ''),
-                    build_class=model_data.get('build_class', ''),
-                    relations=model_data.get('relations', {}),
-                )
-                models_created += 1
+            from components.seed import seed_golden
+            result = seed_golden(wipe=True)
 
             return Response({
                 "status": "Reset complete",
-                "deleted": {"components": deleted_components, "drone_models": deleted_models},
+                "deleted": {
+                    "components": result['deleted_components'],
+                    "drone_models": result['deleted_models'],
+                },
                 "created": {
-                    "categories": Category.objects.count(),
-                    "components": components_created,
-                    "drone_models": models_created,
+                    "categories": result['categories'],
+                    "components": result['components'],
+                    "drone_models": result['drone_models'],
+                },
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ResetToExamplesView(APIView):
+    """
+    POST /api/maintenance/reset-to-examples/
+    Wipes all components, drone models, and categories then re-seeds
+    from the single-example entries in drone_parts_schema_v3.json.
+    """
+    def post(self, request):
+        try:
+            from components.seed import seed_examples
+            result = seed_examples()
+
+            return Response({
+                "status": "Reset complete",
+                "deleted": {
+                    "components": result['deleted_components'],
+                    "drone_models": result['deleted_models'],
+                },
+                "created": {
+                    "categories": result['categories'],
+                    "components": result['components'],
+                    "drone_models": result['drone_models'],
                 },
             }, status=status.HTTP_200_OK)
 
