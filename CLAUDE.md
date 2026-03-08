@@ -2,11 +2,11 @@
 
 ## Project Overview
 
-DroneClear Configurator: Django 5 + vanilla JS internal tool for drone component management, build assembly guides, and audit trails. 5 pages, no frontend framework. Output feeds a production compatibility engine for parts ordering, airworthiness checks, and cybersecurity verification.
+DroneClear Configurator: Django 5 + vanilla JS internal tool for drone component management, build assembly guides, and audit trails. 6 pages, no frontend framework. Output feeds a production compatibility engine for parts ordering, airworthiness checks, and cybersecurity verification.
 
 ## Quick Orientation
 
-- **Frontend**: `DroneClear Components Visualizer/` — 5 HTML pages, 19 JS files, 6 CSS files
+- **Frontend**: `DroneClear Components Visualizer/` — 6 HTML pages, 20 JS files, 7 CSS files
 - **Backend**: `components/` app (models, views, serializers, URLs) + `droneclear_backend/settings/{base,dev,prod}.py`
 - **Schema**: `drone_parts_schema_v3.json` (root copy is canonical)
 - **Domain knowledge**: `docs/fpv_domain_knowledge.md` — FPV drone expertise (compatibility rules, naming conventions, specs). **Read this before working on the compatibility engine or parts data.**

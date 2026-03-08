@@ -5,6 +5,37 @@
 
 ---
 
+## Session 2026-03-08-3 — Mission Control Dashboard (FEAT-013) & FPV Academy Placeholder (FEAT-014)
+
+**Agent**: Claude
+**Branch**: `claude/crazy-lovelace`
+**Commit(s)**: `0046f04`
+
+### Summary
+Added a Mission Control welcome page as the new root `/` landing page. Displays live system stats, 6 module navigation cards (with per-card accent colors), and a "Coming Soon" FPV Academy placeholder. Model Builder moved to `/builder/`. All 6 pages updated with new sidebar navigation.
+
+### Changes
+| Category | Description | Files |
+|----------|-------------|-------|
+| feat | Mission Control page — hero, live stats, module cards grid, About section | `mission-control.html` (new) |
+| feat | Mission Control CSS — `mc-` prefixed styles, accent colors, responsive grid, dark mode | `mission-control.css` (new) |
+| feat | Mission Control JS — parallel API fetch for stats with graceful degradation | `mission-control.js` (new) |
+| feat | FPV Academy "Coming Soon" placeholder card with purple accent badge | `mission-control.html` |
+| refactor | URL routing — Mission Control at `/`, Model Builder moved to `/builder/` | `droneclear_backend/urls.py` |
+| refactor | Sidebar nav updated on all 5 existing pages — added Mission Control link, updated builder href | `index.html`, `editor.html`, `template.html`, `guide.html`, `audit.html` |
+
+### Backlog Updates
+- Completed: FEAT-013
+- Added: FEAT-013 (Mission Control dashboard), FEAT-014 (FPV Academy educational module — next sprint)
+
+### Notes
+- Mission Control icon is `ph-command` (command center feel, matches drone/aerospace theme).
+- Stats fetch uses `textContent` assignment (inherently XSS-safe, no `escapeHTML()` needed).
+- FPV Academy activation requires: change `<div>` to `<a href="/academy/">`, remove `mc-card-coming-soon` class, add route + sidebar link.
+- The maintenance JS (restart, bug report, reset) is duplicated from other pages — reinforces DEBT-007.
+
+---
+
 ## Session 2026-03-08-2 — Guide Media Upload (FEAT-007) & StepPhoto Validation (SEC-003)
 
 **Agent**: Claude

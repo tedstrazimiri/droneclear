@@ -100,7 +100,8 @@ components/
 
 | URL | Template | JS Files |
 |-----|----------|----------|
-| `/` | `index.html` | state, utils, filters, components, modal, build, wizard, persist, app, shortcuts |
+| `/` | `mission-control.html` | utils, mission-control |
+| `/builder/` | `index.html` | state, utils, filters, components, modal, build, wizard, persist, app, shortcuts |
 | `/template/` | `template.html` | utils, template |
 | `/library/` | `editor.html` | utils, editor |
 | `/guide/` | `guide.html` | utils, guide-state, guide-selection, guide-runner, guide-camera, guide-viewer, guide-editor |

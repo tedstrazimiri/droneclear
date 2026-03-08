@@ -83,6 +83,8 @@
 | ~~FEAT-007~~ | ~~Media upload~~ | ~~Resolved — see Completed section~~ | 2026-03-06 |
 | FEAT-008 | Build guide versioning | Track guide revisions so sessions reference a specific version. | 2026-03-06 |
 | FEAT-009 | Audit PDF export | Generate downloadable PDF audit reports from the audit viewer. | 2026-03-06 |
+| ~~FEAT-013~~ | ~~Mission Control dashboard~~ | ~~Resolved — see Completed section~~ | 2026-03-08 |
+| FEAT-014 | FPV Academy educational module | Interactive learning hub for FPV domain knowledge — tutorials, compatibility reference, soldering guides. Placeholder card on Mission Control. | 2026-03-08 |
 
 ---
 
@@ -107,3 +109,4 @@
 | ~~BUG-004~~ | No transaction wrapping — added atomic to serializer update, session create, import | 2026-03-08 | 2026-03-08-1 |
 | ~~FEAT-007~~ | Media upload — GuideMediaFile model + upload endpoint + editor UI | 2026-03-08 | 2026-03-08-2 |
 | ~~SEC-003~~ | StepPhotoUploadView file validation — size, MIME, PIL verify | 2026-03-08 | 2026-03-08-2 |
+| ~~FEAT-013~~ | Mission Control dashboard — welcome page with live stats, module cards, FPV Academy placeholder | 2026-03-08 | 2026-03-08-3 |
