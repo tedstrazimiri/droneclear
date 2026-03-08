@@ -101,8 +101,8 @@ class BuildGuideStep(models.Model):
 
     guide = models.ForeignKey(BuildGuide, related_name='steps', on_delete=models.CASCADE)
     order = models.IntegerField()
-    title = models.CharField(max_length=255)
-    description = models.TextField()
+    title = models.CharField(max_length=255, default='Untitled')
+    description = models.TextField(blank=True, default='')
     safety_warning = models.TextField(blank=True)
     media = models.JSONField(default=list, blank=True)  # [{type, url, caption}]
     stl_file = models.CharField(max_length=500, blank=True)

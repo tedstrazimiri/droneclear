@@ -44,6 +44,10 @@ class BuildGuideStepSerializer(serializers.ModelSerializer):
             'media', 'stl_file', 'betaflight_cli', 'step_type',
             'estimated_time_minutes', 'required_components',
         ]
+        extra_kwargs = {
+            'title': {'required': False, 'allow_blank': True, 'default': 'Untitled'},
+            'description': {'required': False, 'allow_blank': True, 'default': ''},
+        }
 
 
 class BuildGuideListSerializer(serializers.ModelSerializer):
