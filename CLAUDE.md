@@ -9,7 +9,9 @@ DroneClear Configurator: Django 5 + vanilla JS internal tool for drone component
 - **Frontend**: `DroneClear Components Visualizer/` — 5 HTML pages, 19 JS files, 6 CSS files
 - **Backend**: `components/` app (models, views, serializers, URLs) + `droneclear_backend/settings/{base,dev,prod}.py`
 - **Schema**: `drone_parts_schema_v3.json` (root copy is canonical)
+- **Domain knowledge**: `docs/fpv_domain_knowledge.md` — FPV drone expertise (compatibility rules, naming conventions, specs). **Read this before working on the compatibility engine or parts data.**
 - **Detailed docs**: `docs/` — [ARCHITECTURE.md](docs/ARCHITECTURE.md), [MODELS.md](docs/MODELS.md), [FEATURES.md](docs/FEATURES.md)
+- **Seed data**: `docs/golden_parts_db_seed/` — 3,113 real parts across 12 categories (auto-seeded on first migrate)
 - **Backlog**: [BACKLOG.md](BACKLOG.md) — single source of truth for all tracked issues
 - **Changelog**: [CHANGELOG.md](CHANGELOG.md) — session-by-session development history
 - **Deployment**: [DEPLOY_PYTHONANYWHERE.md](DEPLOY_PYTHONANYWHERE.md)
@@ -54,6 +56,17 @@ Navigate to http://127.0.0.1:8000/
 - **Shared repo**: `github.com/tedstrazimiri/droneclear` (`master` branch)
 
 Always fetch before starting work to pick up the other agent's commits.
+
+## Domain Knowledge (`docs/fpv_domain_knowledge.md`)
+
+This file is our **living FPV drone expert brain**. It captures compatibility rules, naming conventions, component specs, retailer data patterns, and hard-won insights that make the compatibility engine work correctly.
+
+**Rules for all agents:**
+- **Consult it** before working on compatibility logic, parts import/export, schema changes, or data processing
+- **Update it** when you discover new domain insights during your work — naming patterns you decoded, edge cases in compatibility checks, retailer quirks, corrections to existing entries
+- **Add to the Revision History** at the bottom when you make changes
+- **Never delete content** without replacing it with something more accurate — this knowledge was built from analysis of thousands of real products
+- Treat this file with the same discipline as BACKLOG.md: it accumulates value over time
 
 ## Backlog Rules
 
