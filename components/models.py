@@ -128,7 +128,7 @@ class BuildSession(models.Model):
     ]
 
     serial_number = models.CharField(max_length=50, unique=True)
-    guide = models.ForeignKey(BuildGuide, on_delete=models.CASCADE, related_name='sessions')
+    guide = models.ForeignKey(BuildGuide, on_delete=models.SET_NULL, null=True, related_name='sessions')
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     current_step = models.IntegerField(default=0)
@@ -150,14 +150,15 @@ class BuildSession(models.Model):
 class StepPhoto(models.Model):
     """Photo captured at a build step — for audit trail and CV training."""
     session = models.ForeignKey(BuildSession, related_name='photos', on_delete=models.CASCADE)
-    step = models.ForeignKey(BuildGuideStep, on_delete=models.CASCADE, related_name='photos')
+    step = models.ForeignKey(BuildGuideStep, on_delete=models.SET_NULL, null=True, related_name='photos')
     image = models.ImageField(upload_to='build_photos/%Y/%m/%d/')
     captured_at = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True)
     sha256 = models.CharField(max_length=64, blank=True)  # Integrity hash computed server-side
 
     def __str__(self):
-        return f"Photo for {self.session.serial_number} step {self.step.order}"
+        step_label = f"step {self.step.order}" if self.step else "deleted step"
+        return f"Photo for {self.session.serial_number} {step_label}"
 
 
 class BuildEvent(models.Model):
@@ -173,7 +174,7 @@ class BuildEvent(models.Model):
         ('checklist_updated', 'Checklist Updated'),
     ]
 
-    session = models.ForeignKey(BuildSession, related_name='events', on_delete=models.CASCADE)
+    session = models.ForeignKey(BuildSession, related_name='events', on_delete=models.PROTECT)
     event_type = models.CharField(max_length=30, choices=EVENT_TYPES)
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
     step_order = models.IntegerField(null=True, blank=True)

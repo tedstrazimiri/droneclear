@@ -14,6 +14,8 @@ from unittest.mock import patch
 
 from PIL import Image
 
+from django.db import IntegrityError
+from django.db.models import ProtectedError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -851,3 +853,178 @@ class MaintenanceTests(TestCase):
         }, format='json')
         self.assertEqual(resp.status_code, 201)
         self.assertIn('file', resp.data)
+
+
+# =====================================================================
+# Data Integrity Tests (BUG-001 through BUG-004)
+# =====================================================================
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA)
+class GuideUpdatePreservesPhotosTests(TestCase):
+    """BUG-001: Editing a guide must not cascade-delete session photos."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.guide = make_guide()
+        self.step = make_step(self.guide, order=1, title='Original Step')
+        resp = self.client.post('/api/build-sessions/', {
+            'guide': self.guide.pid, 'builder_name': 'Tester',
+        }, format='json')
+        self.sn = resp.data['serial_number']
+        # Upload a photo to step 1
+        img = make_test_image()
+        self.client.post(f'/api/build-sessions/{self.sn}/photos/', {
+            'step': self.step.id, 'image': img,
+        }, format='multipart')
+        self.assertEqual(StepPhoto.objects.count(), 1)
+
+    def test_guide_update_preserves_photos(self):
+        """Photos survive when guide steps are edited."""
+        self.client.put(f'/api/build-guides/{self.guide.pid}/', {
+            'pid': self.guide.pid,
+            'name': self.guide.name,
+            'difficulty': self.guide.difficulty,
+            'estimated_time_minutes': self.guide.estimated_time_minutes,
+            'settings': self.guide.settings,
+            'required_tools': self.guide.required_tools,
+            'steps': [
+                {'order': 1, 'title': 'Updated Step', 'description': 'Changed', 'step_type': 'assembly', 'estimated_time_minutes': 5},
+                {'order': 2, 'title': 'New Step', 'description': 'Added', 'step_type': 'firmware', 'estimated_time_minutes': 10},
+            ],
+        }, format='json')
+        # Photo must still exist (step FK set to NULL, not cascade-deleted)
+        self.assertEqual(StepPhoto.objects.count(), 1)
+        photo = StepPhoto.objects.first()
+        self.assertEqual(photo.session.serial_number, self.sn)
+
+    def test_step_delete_nullifies_photo_fk(self):
+        """Deleting a step sets StepPhoto.step to NULL instead of deleting the photo."""
+        self.client.put(f'/api/build-guides/{self.guide.pid}/', {
+            'pid': self.guide.pid,
+            'name': self.guide.name,
+            'difficulty': self.guide.difficulty,
+            'estimated_time_minutes': self.guide.estimated_time_minutes,
+            'settings': self.guide.settings,
+            'required_tools': self.guide.required_tools,
+            'steps': [
+                {'order': 2, 'title': 'Replacement', 'description': 'Only step', 'step_type': 'assembly', 'estimated_time_minutes': 5},
+            ],
+        }, format='json')
+        photo = StepPhoto.objects.first()
+        self.assertIsNone(photo.step)
+
+    def test_update_in_place_preserves_step_ids(self):
+        """Updating an existing step order reuses the step record."""
+        original_step_id = self.step.id
+        self.client.put(f'/api/build-guides/{self.guide.pid}/', {
+            'pid': self.guide.pid,
+            'name': self.guide.name,
+            'difficulty': self.guide.difficulty,
+            'estimated_time_minutes': self.guide.estimated_time_minutes,
+            'settings': self.guide.settings,
+            'required_tools': self.guide.required_tools,
+            'steps': [
+                {'order': 1, 'title': 'Updated Title', 'description': 'Updated', 'step_type': 'assembly', 'estimated_time_minutes': 5},
+            ],
+        }, format='json')
+        step = BuildGuideStep.objects.get(guide=self.guide, order=1)
+        self.assertEqual(step.id, original_step_id)
+        self.assertEqual(step.title, 'Updated Title')
+
+
+class BuildEventProtectTests(TestCase):
+    """BUG-003: BuildEvent PROTECT prevents session deletion when events exist."""
+
+    def setUp(self):
+        self.guide = make_guide()
+        self.session = BuildSession.objects.create(
+            serial_number='DC-TEST-PROTECT', guide=self.guide,
+        )
+        BuildEvent.objects.create(
+            session=self.session, event_type='session_started',
+        )
+
+    def test_cannot_delete_session_with_events(self):
+        """Deleting a session that has audit events raises ProtectedError."""
+        with self.assertRaises(ProtectedError):
+            self.session.delete()
+
+    def test_can_delete_session_after_events_removed(self):
+        """Session can be deleted once all events are explicitly removed."""
+        BuildEvent.objects.filter(session=self.session).delete()
+        self.session.delete()
+        self.assertEqual(BuildSession.objects.filter(serial_number='DC-TEST-PROTECT').count(), 0)
+
+    def test_guide_deletion_preserves_sessions(self):
+        """Deleting a guide sets session.guide to NULL, preserving the session and its audit trail."""
+        self.guide.delete()
+        self.session.refresh_from_db()
+        self.assertIsNone(self.session.guide)
+        self.assertEqual(BuildEvent.objects.filter(session=self.session).count(), 1)
+
+
+class SerialNumberAtomicityTests(TestCase):
+    """BUG-002: Serial number generation uses select_for_update within a transaction."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.guide = make_guide()
+        make_step(self.guide, order=1)
+
+    def test_serial_numbers_unique_sequential(self):
+        """Multiple rapid session creates produce unique sequential serial numbers."""
+        serial_numbers = []
+        for _ in range(5):
+            resp = self.client.post('/api/build-sessions/', {
+                'guide': self.guide.pid, 'builder_name': 'Racer',
+            }, format='json')
+            self.assertEqual(resp.status_code, 201)
+            serial_numbers.append(resp.data['serial_number'])
+
+        # All unique
+        self.assertEqual(len(set(serial_numbers)), 5)
+        # Sequential
+        seqs = [int(sn.split('-')[-1]) for sn in serial_numbers]
+        self.assertEqual(seqs, list(range(1, 6)))
+
+    def test_session_and_event_created_atomically(self):
+        """Session creation and session_started event are in the same transaction."""
+        resp = self.client.post('/api/build-sessions/', {
+            'guide': self.guide.pid, 'builder_name': 'Atomic',
+        }, format='json')
+        self.assertEqual(resp.status_code, 201)
+        session = BuildSession.objects.get(serial_number=resp.data['serial_number'])
+        events = BuildEvent.objects.filter(session=session, event_type='session_started')
+        self.assertEqual(events.count(), 1)
+
+
+class ImportPartsTransactionTests(TestCase):
+    """BUG-004: ImportPartsView uses per-item savepoints."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.cat = make_category()
+
+    def test_valid_items_persist_despite_later_errors(self):
+        """Good items are committed even if later items have errors."""
+        parts = [
+            {'pid': 'MTR-0001', 'category': 'motors', 'name': 'Good Motor'},
+            {'pid': 'MTR-0002', 'category': 'nonexistent', 'name': 'Bad Motor'},
+            {'pid': 'MTR-0003', 'category': 'motors', 'name': 'Another Good Motor'},
+        ]
+        resp = self.client.post('/api/import/parts/', parts, format='json')
+        self.assertEqual(resp.data['created'], 2)
+        self.assertEqual(len(resp.data['errors']), 1)
+        self.assertEqual(Component.objects.count(), 2)
+
+    def test_single_item_failure_does_not_corrupt_others(self):
+        """A database-level error on one item doesn't roll back others."""
+        make_component(self.cat, pid='MTR-EXIST', name='Existing')
+        parts = [
+            {'pid': 'MTR-NEW', 'category': 'motors', 'name': 'New Motor'},
+            {'pid': 'MTR-EXIST', 'category': 'motors', 'name': 'Updated Existing'},
+        ]
+        resp = self.client.post('/api/import/parts/', parts, format='json')
+        self.assertEqual(resp.data['created'], 1)
+        self.assertEqual(resp.data['updated'], 1)
+        self.assertEqual(Component.objects.count(), 2)

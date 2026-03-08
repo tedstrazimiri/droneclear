@@ -13,6 +13,7 @@ import datetime
 import threading
 
 from django.conf import settings
+from django.db import IntegrityError, transaction
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -276,7 +277,8 @@ class ImportPartsView(APIView):
             }
 
             try:
-                obj, was_created = Component.objects.update_or_create(pid=pid, defaults=defaults)
+                with transaction.atomic():
+                    obj, was_created = Component.objects.update_or_create(pid=pid, defaults=defaults)
                 if was_created:
                     created += 1
                 else:
@@ -356,57 +358,66 @@ class BuildSessionViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        today = timezone.now().strftime('%Y%m%d')
-        prefix = f'DC-{today}-'
-        last = (
-            BuildSession.objects
-            .filter(serial_number__startswith=prefix)
-            .order_by('-serial_number')
-            .first()
-        )
-        seq = 1
-        if last:
+        MAX_RETRIES = 3
+        for attempt in range(MAX_RETRIES):
             try:
-                seq = int(last.serial_number.split('-')[-1]) + 1
-            except ValueError:
-                seq = 1
-        sn = f'{prefix}{seq:04d}'
+                with transaction.atomic():
+                    today = timezone.now().strftime('%Y%m%d')
+                    prefix = f'DC-{today}-'
+                    last = (
+                        BuildSession.objects
+                        .select_for_update()
+                        .filter(serial_number__startswith=prefix)
+                        .order_by('-serial_number')
+                        .first()
+                    )
+                    seq = 1
+                    if last:
+                        try:
+                            seq = int(last.serial_number.split('-')[-1]) + 1
+                        except ValueError:
+                            seq = 1
+                    sn = f'{prefix}{seq:04d}'
 
-        guide = serializer.validated_data['guide']
+                    guide = serializer.validated_data['guide']
 
-        # ── Audit: snapshot guide + steps at build start ──
-        guide_data = BuildGuideDetailSerializer(guide).data
+                    # ── Audit: snapshot guide + steps at build start ──
+                    guide_data = BuildGuideDetailSerializer(guide).data
 
-        # ── Audit: snapshot all referenced components ──
-        all_pids = set()
-        for step in guide.steps.all():
-            for pid in (step.required_components or []):
-                all_pids.add(pid)
-        if guide.drone_model and guide.drone_model.relations:
-            for pid in guide.drone_model.relations.values():
-                if pid:
-                    all_pids.add(pid)
-        components = Component.objects.filter(pid__in=all_pids)
-        comp_data = {c.pid: ComponentSerializer(c).data for c in components}
+                    # ── Audit: snapshot all referenced components ──
+                    all_pids = set()
+                    for step in guide.steps.all():
+                        for pid in (step.required_components or []):
+                            all_pids.add(pid)
+                    if guide.drone_model and guide.drone_model.relations:
+                        for pid in guide.drone_model.relations.values():
+                            if pid:
+                                all_pids.add(pid)
+                    components = Component.objects.filter(pid__in=all_pids)
+                    comp_data = {c.pid: ComponentSerializer(c).data for c in components}
 
-        session = serializer.save(
-            serial_number=sn,
-            guide_snapshot=guide_data,
-            component_snapshot=comp_data,
-        )
+                    session = serializer.save(
+                        serial_number=sn,
+                        guide_snapshot=guide_data,
+                        component_snapshot=comp_data,
+                    )
 
-        # ── Audit: emit session_started event ──
-        BuildEvent.objects.create(
-            session=session,
-            event_type='session_started',
-            data={
-                'guide_pid': guide.pid,
-                'guide_name': guide.name,
-                'builder_name': session.builder_name,
-                'component_count': len(comp_data),
-                'step_count': guide.steps.count(),
-            },
-        )
+                    # ── Audit: emit session_started event ──
+                    BuildEvent.objects.create(
+                        session=session,
+                        event_type='session_started',
+                        data={
+                            'guide_pid': guide.pid,
+                            'guide_name': guide.name,
+                            'builder_name': session.builder_name,
+                            'component_count': len(comp_data),
+                            'step_count': guide.steps.count(),
+                        },
+                    )
+                return  # success
+            except IntegrityError:
+                if attempt == MAX_RETRIES - 1:
+                    raise
 
 
 class StepPhotoUploadView(APIView):
@@ -548,8 +559,8 @@ class BuildAuditView(APIView):
             'component_checklist': session.component_checklist,
             'photos': [{
                 'id': p.id,
-                'step_order': p.step.order,
-                'step_title': p.step.title,
+                'step_order': p.step.order if p.step else None,
+                'step_title': p.step.title if p.step else None,
                 'image_url': request.build_absolute_uri(p.image.url) if p.image else None,
                 'sha256': p.sha256,
                 'captured_at': p.captured_at.isoformat(),
