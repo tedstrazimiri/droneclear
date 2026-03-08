@@ -5,6 +5,38 @@
 
 ---
 
+## Session 2026-03-07-1 — Golden Seed, Schema Merge, Guide Fixes & Build Components Panel
+
+**Agent**: Claude
+**Branch**: `claude/great-sinoussi`
+**Commits**: `8ebb110`, `c458ddb`, `5743ae7`, `c92defb`, `8fcbbf1`, `b618870`, `b724789`
+
+### Summary
+Major data foundation session: seeded the database with 3,113 real FPV drone parts from golden seed JSON files (12 categories), merged 79 missing fields into schema blueprints, and added a Reset to Examples button on all pages. Fixed guide page getCookie bug, added Build Components quick-select panel to the guide step editor (so linked drone model parts appear as one-click toggle buttons instead of requiring PID search), and fixed guide save failure caused by DRF 400 validation on blank step title/description.
+
+### Changes
+| Category | Description | Files |
+|----------|-------------|-------|
+| feat | Golden seed system — 3,113 real parts auto-seeded via post_migrate signal | `components/seed.py`, `components/apps.py`, `docs/golden_parts_db_seed/*.json` (12 files) |
+| feat | Reset to Examples button on index, editor, template pages | `index.html`, `editor.html`, `template.html` |
+| feat | Build Components quick-select panel in guide step editor | `guide-editor.js`, `guide.html`, `guide.css` |
+| fix | Merge 79 seed data fields into schema v3 blueprints | `drone_parts_schema_v3.json` (both root and frontend copies) |
+| fix | Add missing `utils.js` import to guide page (getCookie not defined) | `guide.html` |
+| fix | Allow blank title/description on BuildGuideStep for new empty steps | `components/models.py`, `components/serializers.py`, migration `0008` |
+| docs | FPV domain knowledge file, updated CLAUDE.md with seed data and domain docs | `docs/fpv_domain_knowledge.md`, `CLAUDE.md` |
+
+### Backlog Updates
+- Completed: FEAT-010, FEAT-011, FEAT-012, BUG-005, BUG-006, BUG-007
+- Added: FEAT-010 through FEAT-012, BUG-005 through BUG-007 (all completed this session)
+
+### Notes
+- Golden seed loads once via `post_migrate` signal; subsequent migrations skip if data exists. `reset_to_golden` management command available for full reset.
+- Build Components panel resolves the UX gap where guide step editors required manual PID entry despite having a linked drone model with all parts already associated.
+- The `allow_blank` fix on BuildGuideStep was necessary because "+ Add Step" creates steps with empty fields — DRF's default validation rejects blank strings even with `required=False`.
+- FPV domain knowledge (`docs/fpv_domain_knowledge.md`) is a living document capturing compatibility rules, naming conventions, and retailer patterns discovered during seed data analysis.
+
+---
+
 ## Session 2026-03-06-4 — Documentation Refactor
 
 **Agent**: Claude
