@@ -23,15 +23,19 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from django.core.exceptions import ValidationError
+
 from .models import (
     Category, Component, DroneModel,
     BuildGuide, BuildGuideStep, BuildSession, StepPhoto, BuildEvent,
+    GuideMediaFile,
 )
 from .serializers import (
     CategorySerializer, ComponentSerializer, DroneModelSerializer,
     BuildGuideListSerializer, BuildGuideDetailSerializer,
     BuildSessionSerializer, StepPhotoSerializer,
 )
+from .upload_utils import validate_uploaded_file, ALLOWED_IMAGE_MIMES
 
 
 # ── Core CRUD ViewSets ─────────────────────────────────────
@@ -339,6 +343,52 @@ class BuildGuideViewSet(viewsets.ModelViewSet):
         return BuildGuideDetailSerializer
 
 
+class GuideMediaUploadView(APIView):
+    """
+    POST /api/guide-media/upload/
+    Upload an image or video file for use in guide step media.
+    Files are tracked in GuideMediaFile for audit, cleanup, and future
+    migration to secured storage (S3, Azure, etc.).
+    Returns {url, type, filename, id} for insertion into the step's media array.
+    """
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        file = request.FILES.get('file')
+        guide_pid = request.data.get('guide_pid')
+
+        if not file:
+            return Response({'error': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not guide_pid:
+            return Response({'error': 'guide_pid is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            guide = BuildGuide.objects.get(pid=guide_pid)
+        except BuildGuide.DoesNotExist:
+            return Response({'error': f'Guide "{guide_pid}" not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            media_type, ext = validate_uploaded_file(file)
+        except ValidationError as e:
+            return Response({'error': e.message}, status=status.HTTP_400_BAD_REQUEST)
+
+        media_file = GuideMediaFile(
+            guide=guide,
+            original_filename=file.name,
+            content_type=file.content_type,
+            file_size=file.size,
+            media_type=media_type,
+        )
+        media_file.file.save(f'{media_file.id}{ext}', file, save=True)
+
+        return Response({
+            'url': media_file.file.url,
+            'type': media_type,
+            'filename': file.name,
+            'id': str(media_file.id),
+        }, status=status.HTTP_201_CREATED)
+
+
 class BuildSessionViewSet(viewsets.ModelViewSet):
     """CRUD for build sessions. Serial number auto-generated on create."""
     serializer_class = BuildSessionSerializer
@@ -449,6 +499,12 @@ class StepPhotoUploadView(APIView):
 
         if not step_id or not image:
             return Response({'error': 'step and image are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # ── Validate uploaded file (SEC-003) ──
+        try:
+            validate_uploaded_file(image, allowed_mimes=ALLOWED_IMAGE_MIMES)
+        except ValidationError as e:
+            return Response({'error': e.message}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             step = BuildGuideStep.objects.get(id=step_id, guide=session.guide)

@@ -417,21 +417,42 @@ function renderEditorMediaList(media) {
         return;
     }
 
-    list.innerHTML = media.map((item, i) => `
-        <div class="guide-editor-media-item" data-index="${i}">
+    list.innerHTML = media.map((item, i) => {
+        const hasUrl = Boolean(item.url);
+        const isImage = item.type === 'image';
+        const thumbHtml = (hasUrl && isImage)
+            ? `<img class="guide-editor-media-thumb" src="${escHTML(item.url)}"
+                   alt="" onerror="this.style.display='none'">`
+            : '';
+        return `<div class="guide-editor-media-item" data-index="${i}">
+            ${thumbHtml}
             <select class="form-input" data-field="type" style="width:80px; font-size:12px; padding:4px;">
                 <option value="image"${item.type === 'image' ? ' selected' : ''}>Image</option>
                 <option value="video"${item.type === 'video' ? ' selected' : ''}>Video</option>
             </select>
             <input class="form-input" type="text" data-field="url" value="${escHTML(item.url || '')}"
-                   placeholder="URL..." style="flex:1; font-size:12px; padding:4px 8px;">
+                   placeholder="URL or upload..." style="flex:1; font-size:12px; padding:4px 8px;">
+            <label class="btn btn-outline guide-editor-upload-btn" title="Upload file">
+                <i class="ph ph-upload-simple"></i>
+                <input type="file" class="guide-editor-upload-input" data-media-index="${i}"
+                       accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
+                       style="display:none;">
+            </label>
             <input class="form-input" type="text" data-field="caption" value="${escHTML(item.caption || '')}"
                    placeholder="Caption (optional)" style="width:140px; font-size:12px; padding:4px 8px;">
             <button class="guide-editor-step-item-remove" onclick="removeEditorMedia(${i})" type="button">
                 <i class="ph ph-x"></i>
             </button>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
+
+    // Bind upload file inputs
+    list.querySelectorAll('.guide-editor-upload-input').forEach(input => {
+        input.addEventListener('change', function () {
+            const mediaIndex = parseInt(this.dataset.mediaIndex, 10);
+            onGuideMediaFileSelected(this, mediaIndex);
+        });
+    });
 }
 
 function addEditorMedia() {
@@ -468,6 +489,66 @@ function readEditorMedia() {
         if (url) media.push({ type, url, caption });
     });
     _editorSteps[idx].media = media;
+}
+
+// ── Guide media file upload ──────────────────────────
+
+async function onGuideMediaFileSelected(inputEl, mediaIndex) {
+    const file = inputEl.files?.[0];
+    if (!file) return;
+
+    const MAX_SIZE = 10 * 1024 * 1024; // 10 MB (match server limit)
+    if (file.size > MAX_SIZE) {
+        showToast('File too large — maximum size is 10 MB.', 'error');
+        inputEl.value = '';
+        return;
+    }
+
+    const idx = guideState.editingStepIndex;
+    if (idx < 0 || !_editorSteps[idx]) return;
+
+    // Need guide PID for compartmentalized storage
+    const guidePid = guideState.editingGuide?.pid || guideState.selectedGuide?.pid;
+    if (!guidePid) {
+        showToast('Save the guide first before uploading media.', 'error');
+        inputEl.value = '';
+        return;
+    }
+
+    // Show uploading state
+    const mediaItem = inputEl.closest('.guide-editor-media-item');
+    const urlInput = mediaItem?.querySelector('[data-field="url"]');
+    const uploadBtn = mediaItem?.querySelector('.guide-editor-upload-btn');
+    if (urlInput) { urlInput.value = 'Uploading...'; urlInput.disabled = true; }
+    if (uploadBtn) uploadBtn.classList.add('uploading');
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('guide_pid', guidePid);
+
+    try {
+        const result = await apiFetch(GUIDE_API.mediaUpload, {
+            method: 'POST',
+            body: formData,
+        });
+
+        // Update the step media entry
+        readEditorMedia();
+        if (!_editorSteps[idx].media) _editorSteps[idx].media = [];
+        if (_editorSteps[idx].media[mediaIndex]) {
+            _editorSteps[idx].media[mediaIndex].url = result.url;
+            _editorSteps[idx].media[mediaIndex].type = result.type;
+        }
+        renderEditorMediaList(_editorSteps[idx].media);
+        showToast('Media uploaded successfully.', 'success');
+    } catch (err) {
+        console.error('Media upload failed:', err);
+        showToast('Upload failed: ' + (err.message || 'Unknown error'), 'error');
+        if (urlInput) { urlInput.value = ''; urlInput.disabled = false; }
+        if (uploadBtn) uploadBtn.classList.remove('uploading');
+    }
+
+    inputEl.value = '';
 }
 
 // ── Component Picker ──────────────────────────────────

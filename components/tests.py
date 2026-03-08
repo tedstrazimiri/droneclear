@@ -23,6 +23,7 @@ from rest_framework.test import APIClient
 from .models import (
     Category, Component, DroneModel,
     BuildGuide, BuildGuideStep, BuildSession, StepPhoto, BuildEvent,
+    GuideMediaFile,
 )
 
 
@@ -1028,3 +1029,140 @@ class ImportPartsTransactionTests(TestCase):
         self.assertEqual(resp.data['created'], 1)
         self.assertEqual(resp.data['updated'], 1)
         self.assertEqual(Component.objects.count(), 2)
+
+
+# =====================================================================
+# Guide Media Upload Tests (FEAT-007)
+# =====================================================================
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA)
+class GuideMediaUploadTests(TestCase):
+    """FEAT-007: Direct file upload for guide step media."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.guide = make_guide()
+
+    def test_upload_image_success(self):
+        """Valid image upload returns URL, type, filename, and creates DB record."""
+        img = make_test_image()
+        resp = self.client.post('/api/guide-media/upload/', {
+            'file': img,
+            'guide_pid': self.guide.pid,
+        }, format='multipart')
+        self.assertEqual(resp.status_code, 201)
+        self.assertIn('url', resp.data)
+        self.assertEqual(resp.data['type'], 'image')
+        self.assertEqual(resp.data['filename'], 'test_photo.png')
+        self.assertIn('id', resp.data)
+        # DB record created
+        self.assertEqual(GuideMediaFile.objects.count(), 1)
+        media = GuideMediaFile.objects.first()
+        self.assertEqual(media.guide, self.guide)
+        self.assertEqual(media.media_type, 'image')
+        self.assertEqual(media.original_filename, 'test_photo.png')
+
+    def test_upload_no_file_rejected(self):
+        resp = self.client.post('/api/guide-media/upload/', {
+            'guide_pid': self.guide.pid,
+        }, format='multipart')
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('error', resp.data)
+
+    def test_upload_no_guide_pid_rejected(self):
+        img = make_test_image()
+        resp = self.client.post('/api/guide-media/upload/', {
+            'file': img,
+        }, format='multipart')
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('guide_pid', resp.data['error'].lower())
+
+    def test_upload_invalid_guide_rejected(self):
+        img = make_test_image()
+        resp = self.client.post('/api/guide-media/upload/', {
+            'file': img,
+            'guide_pid': 'NONEXISTENT',
+        }, format='multipart')
+        self.assertEqual(resp.status_code, 404)
+
+    def test_upload_disallowed_mime_rejected(self):
+        """Non-image/video MIME types should be rejected."""
+        buf = io.BytesIO(b'not a real image')
+        buf.name = 'malicious.exe'
+        resp = self.client.post('/api/guide-media/upload/', {
+            'file': buf,
+            'guide_pid': self.guide.pid,
+        }, format='multipart')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(GuideMediaFile.objects.count(), 0)
+
+    def test_upload_path_traversal_prevented(self):
+        """Uploaded files use UUID filenames — original name never used in path."""
+        img = make_test_image()
+        img.name = '../../etc/passwd.png'
+        resp = self.client.post('/api/guide-media/upload/', {
+            'file': img,
+            'guide_pid': self.guide.pid,
+        }, format='multipart')
+        self.assertEqual(resp.status_code, 201)
+        self.assertNotIn('passwd', resp.data['url'])
+        self.assertNotIn('..', resp.data['url'])
+
+    def test_upload_compartmentalized_by_guide(self):
+        """File URL contains the guide PID for compartmentalization."""
+        img = make_test_image()
+        resp = self.client.post('/api/guide-media/upload/', {
+            'file': img,
+            'guide_pid': self.guide.pid,
+        }, format='multipart')
+        self.assertEqual(resp.status_code, 201)
+        self.assertIn(self.guide.pid, resp.data['url'])
+
+    def test_uploaded_file_exists_on_disk(self):
+        """The file should actually be written to disk."""
+        img = make_test_image()
+        resp = self.client.post('/api/guide-media/upload/', {
+            'file': img,
+            'guide_pid': self.guide.pid,
+        }, format='multipart')
+        media = GuideMediaFile.objects.first()
+        self.assertTrue(media.file.storage.exists(media.file.name))
+
+
+# =====================================================================
+# StepPhoto Validation Tests (SEC-003 fix)
+# =====================================================================
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA)
+class StepPhotoValidationTests(TestCase):
+    """SEC-003: StepPhotoUploadView now validates uploaded files."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.guide = make_guide()
+        self.step = make_step(self.guide, order=1)
+        resp = self.client.post('/api/build-sessions/', {
+            'guide': self.guide.pid, 'builder_name': 'Tester',
+        }, format='json')
+        self.sn = resp.data['serial_number']
+
+    def test_step_photo_rejects_non_image(self):
+        """Non-image files should be rejected by the step photo endpoint."""
+        buf = io.BytesIO(b'this is not an image')
+        buf.name = 'fake.txt'
+        resp = self.client.post(f'/api/build-sessions/{self.sn}/photos/', {
+            'step': self.step.id,
+            'image': buf,
+        }, format='multipart')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(StepPhoto.objects.count(), 0)
+
+    def test_step_photo_accepts_valid_image(self):
+        """Valid images should still be accepted after adding validation."""
+        img = make_test_image()
+        resp = self.client.post(f'/api/build-sessions/{self.sn}/photos/', {
+            'step': self.step.id,
+            'image': img,
+        }, format='multipart')
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(StepPhoto.objects.count(), 1)

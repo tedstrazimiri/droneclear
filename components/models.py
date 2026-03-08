@@ -3,10 +3,15 @@ models.py — DroneClear data models.
 
 Core: Category, Component, DroneModel (parts library & compatibility engine)
 Guide: BuildGuide, BuildGuideStep (assembly instructions)
+Media: GuideMediaFile (uploaded images/videos for guide steps)
 Session: BuildSession, StepPhoto, BuildEvent (build tracking & audit trail)
 """
 
+import uuid
+
 from django.db import models
+
+from .upload_utils import guide_media_upload_path
 
 
 # ── Core Parts Library ──────────────────────────────────────
@@ -117,6 +122,33 @@ class BuildGuideStep(models.Model):
 
     def __str__(self):
         return f"Step {self.order}: {self.title}"
+
+
+class GuideMediaFile(models.Model):
+    """
+    Uploaded media file for guide steps. Uses Django's storage API for
+    backend-agnostic storage (local disk in dev, S3/Azure/GCS in prod).
+    Files are compartmentalized by guide PID for future access policies.
+    """
+    MEDIA_TYPE_CHOICES = [
+        ('image', 'Image'),
+        ('video', 'Video'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    guide = models.ForeignKey(BuildGuide, on_delete=models.CASCADE, related_name='media_files')
+    file = models.FileField(upload_to=guide_media_upload_path)
+    original_filename = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=100)
+    file_size = models.PositiveIntegerField()
+    media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.original_filename} ({self.media_type}) — {self.guide.pid}"
 
 
 class BuildSession(models.Model):

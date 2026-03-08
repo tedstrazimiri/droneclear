@@ -18,9 +18,8 @@ DroneClear Configurator: Django 5 + vanilla JS internal tool for drone component
 
 ## Before Starting Work
 
-1. Run `git fetch && git merge origin/master --ff-only` to pick up other agent's commits
-2. Read `BACKLOG.md` to understand current priorities and open issues
-3. Check the top entry in `CHANGELOG.md` for the most recent session's context
+1. Read `BACKLOG.md` to understand current priorities and open issues
+2. Check the top entry in `CHANGELOG.md` for the most recent session's context
 
 ## Key Conventions
 
@@ -39,7 +38,7 @@ DroneClear Configurator: Django 5 + vanilla JS internal tool for drone component
 python manage.py test components
 ```
 
-72 tests across 13 classes. All must pass before committing.
+92 tests across 19 classes. All must pass before committing.
 
 ## Development Server
 
@@ -49,19 +48,17 @@ python manage.py runserver 8000
 
 Navigate to http://127.0.0.1:8000/
 
-## Multi-Agent Development
+## Development
 
-- **Claude** works in: `C:\Users\Ted\Documents\DRONECLEAR - Claude` (and git worktrees)
-- **Gemini** works in: `C:\Users\Ted\Documents\DRONECLEAR - Claude - Gemini`
-- **Shared repo**: `github.com/tedstrazimiri/droneclear` (`master` branch)
-
-Always fetch before starting work to pick up the other agent's commits.
+- **Agent**: Claude (sole developer)
+- **Working directory**: `C:\Users\Ted\Documents\DRONECLEAR - Claude` (and git worktrees)
+- **Repo**: `github.com/tedstrazimiri/droneclear` (`master` branch)
 
 ## Domain Knowledge (`docs/fpv_domain_knowledge.md`)
 
 This file is our **living FPV drone expert brain**. It captures compatibility rules, naming conventions, component specs, retailer data patterns, and hard-won insights that make the compatibility engine work correctly.
 
-**Rules for all agents:**
+**Rules:**
 - **Consult it** before working on compatibility logic, parts import/export, schema changes, or data processing
 - **Update it** when you discover new domain insights during your work — naming patterns you decoded, edge cases in compatibility checks, retailer quirks, corrections to existing entries
 - **Add to the Revision History** at the bottom when you make changes

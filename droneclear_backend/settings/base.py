@@ -104,10 +104,14 @@ STATICFILES_DIRS = [
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # ---------------------------------------------------------------------------
-# Media files (user-uploaded content: build step photos, etc.)
+# Media files (user-uploaded content: build step photos, guide media, etc.)
 # ---------------------------------------------------------------------------
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Upload size limits: 10 MB max file + multipart overhead
+FILE_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024   # 12 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024    # 12 MB
 
 # ---------------------------------------------------------------------------
 # Misc

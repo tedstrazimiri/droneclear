@@ -688,6 +688,26 @@
     gap: 6px;
     padding: 4px 0;
 }
+.guide-editor-upload-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.guide-editor-upload-btn.uploading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+.guide-editor-media-thumb {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: var(--radius-sm, 4px);
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
 
 /* 3D viewer */
 .guide-stl-viewer { margin-bottom: 20px; }

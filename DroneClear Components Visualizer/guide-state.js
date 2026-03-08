@@ -149,6 +149,7 @@ const GUIDE_API = {
     componentsByPids: (pids) => `/api/components/?pids=${pids.join(',')}`,
     droneModels: '/api/drone-models/',
     droneModelDetail: (pid) => `/api/drone-models/${pid}/`,
+    mediaUpload: '/api/guide-media/upload/',
 };
 
 async function apiFetch(url, options = {}) {
