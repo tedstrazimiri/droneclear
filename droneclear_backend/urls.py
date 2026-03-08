@@ -22,7 +22,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', TemplateView.as_view(template_name='index.html'), name='builder'),
+    path('', TemplateView.as_view(template_name='mission-control.html'), name='mission-control'),
+    path('builder/', TemplateView.as_view(template_name='index.html'), name='builder'),
     path('library/', TemplateView.as_view(template_name='editor.html'), name='library'),
     path('template/', TemplateView.as_view(template_name='template.html'), name='template'),
     path('editor/', TemplateView.as_view(template_name='editor.html')), # Legacy redirect/support

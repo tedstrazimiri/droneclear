@@ -1,0 +1,380 @@
+/* =============================================================
+   mission-control.css — Mission Control Dashboard Styles
+   All classes prefixed mc- to avoid collisions with other pages.
+   Uses CSS variables from base.css exclusively.
+   ============================================================= */
+
+/* --- Hero Section --- */
+.mc-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 40px 48px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 32px;
+}
+
+.mc-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent-red), var(--accent-blue), var(--accent-purple));
+}
+
+.mc-hero-text {
+    max-width: 640px;
+    z-index: 1;
+}
+
+.mc-hero-title {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--text-main);
+    margin: 0 0 12px 0;
+    line-height: 1.2;
+}
+
+.mc-brand {
+    background: linear-gradient(135deg, var(--accent-red), var(--accent-darkred));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.mc-hero-subtitle {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.mc-hero-graphic {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.12;
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.mc-hero-graphic i {
+    font-size: 160px;
+    color: var(--accent-red);
+}
+
+[data-theme="dark"] .mc-hero-graphic {
+    opacity: 0.08;
+}
+
+/* --- Stats Row --- */
+.mc-stats-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.mc-stat-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 20px 16px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mc-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+.mc-stat-card i {
+    font-size: 28px;
+    color: var(--accent-red);
+}
+
+.mc-stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text-main);
+    line-height: 1;
+}
+
+.mc-stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-faint);
+}
+
+/* --- Section Headers --- */
+.mc-section {
+    margin-bottom: 40px;
+}
+
+.mc-section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mc-section-title i {
+    color: var(--accent-red);
+    font-size: 22px;
+}
+
+/* --- Module Cards Grid --- */
+.mc-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 24px;
+}
+
+.mc-module-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 28px 24px 24px;
+    box-shadow: var(--card-shadow);
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    overflow: hidden;
+}
+
+.mc-module-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent-red), var(--accent-blue));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mc-module-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--border-hover);
+}
+
+.mc-module-card:hover::before {
+    opacity: 1;
+}
+
+.mc-module-card:hover .mc-launch-btn {
+    color: var(--accent-red);
+}
+
+.mc-module-card:hover .mc-launch-btn i {
+    transform: translateX(4px);
+}
+
+/* --- Card Icon --- */
+.mc-card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    font-size: 26px;
+    transition: transform 0.3s ease;
+}
+
+.mc-module-card:hover .mc-card-icon {
+    transform: scale(1.08);
+}
+
+/* Per-card accent colors */
+.mc-module-card[data-accent="red"] .mc-card-icon {
+    background: rgba(218, 41, 28, 0.1);
+    color: var(--accent-red);
+}
+.mc-module-card[data-accent="blue"] .mc-card-icon {
+    background: rgba(2, 132, 199, 0.1);
+    color: var(--accent-blue);
+}
+.mc-module-card[data-accent="green"] .mc-card-icon {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--accent-green);
+}
+.mc-module-card[data-accent="cyan"] .mc-card-icon {
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--accent-cyan);
+}
+.mc-module-card[data-accent="purple"] .mc-card-icon {
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--accent-purple);
+}
+.mc-module-card[data-accent="amber"] .mc-card-icon {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+/* Dark mode accent backgrounds */
+[data-theme="dark"] .mc-module-card[data-accent="red"] .mc-card-icon {
+    background: rgba(255, 59, 48, 0.15);
+}
+[data-theme="dark"] .mc-module-card[data-accent="blue"] .mc-card-icon {
+    background: rgba(2, 132, 199, 0.15);
+}
+[data-theme="dark"] .mc-module-card[data-accent="green"] .mc-card-icon {
+    background: rgba(34, 197, 94, 0.15);
+}
+[data-theme="dark"] .mc-module-card[data-accent="cyan"] .mc-card-icon {
+    background: rgba(6, 182, 212, 0.15);
+}
+[data-theme="dark"] .mc-module-card[data-accent="purple"] .mc-card-icon {
+    background: rgba(139, 92, 246, 0.15);
+}
+[data-theme="dark"] .mc-module-card[data-accent="amber"] .mc-card-icon {
+    background: rgba(245, 158, 11, 0.15);
+}
+
+/* --- Card Body --- */
+.mc-card-body {
+    flex: 1;
+}
+
+.mc-card-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 8px 0;
+}
+
+.mc-card-desc {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* --- Card Action --- */
+.mc-card-action {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.mc-launch-btn {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-faint);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s ease;
+}
+
+.mc-launch-btn i {
+    font-size: 16px;
+    transition: transform 0.2s ease;
+}
+
+/* --- Coming Soon Card --- */
+.mc-card-coming-soon {
+    opacity: 0.55;
+    cursor: default;
+    pointer-events: none;
+}
+
+.mc-card-coming-soon::before {
+    display: none;
+}
+
+.mc-coming-soon-badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: var(--accent-purple);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+.mc-launch-btn.mc-disabled {
+    color: var(--text-faint);
+}
+
+/* --- Overview Section --- */
+.mc-overview {
+    margin-bottom: 60px;
+}
+
+.mc-overview-text {
+    max-width: 800px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .mc-hero {
+        flex-direction: column;
+        padding: 28px 24px;
+        text-align: center;
+    }
+
+    .mc-hero-title {
+        font-size: 26px;
+    }
+
+    .mc-hero-graphic {
+        display: none;
+    }
+
+    .mc-stats-row {
+        flex-wrap: wrap;
+    }
+
+    .mc-stat-card {
+        flex: 1 1 calc(50% - 10px);
+        min-width: 120px;
+    }
+
+    .mc-cards-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .mc-stat-card {
+        flex: 1 1 100%;
+    }
+}

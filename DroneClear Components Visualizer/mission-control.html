@@ -1,0 +1,495 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Control — DroneClear</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'base.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'layout.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'components.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'utilities.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'mission-control.css' %}?v=1">
+
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        // Apply saved theme before paint to avoid flash
+        (function () {
+            const saved = localStorage.getItem('dc-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', saved ? saved : (prefersDark ? 'dark' : 'light'));
+        })();
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- Sidebar Overlay (Mobile) -->
+        <div class="sidebar-overlay hidden" id="sidebar-overlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-text">DroneClear Configurator</span>
+                </div>
+
+                <!-- System Meta Drawer -->
+                <details class="system-meta-drawer">
+                    <summary>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span class="status-indicator"></span>
+                            <span>v1.0.0 | Build 26</span>
+                        </div>
+                        <i class="ph ph-caret-down"></i>
+                    </summary>
+                    <div class="meta-actions-grid">
+                        <p id="total-parts-count">Mission Control</p>
+
+                        <button class="btn btn-outline" id="btn-restart-server"
+                            style="padding: 6px; font-size: 11px; justify-content: center;">
+                            <i class="ph ph-arrows-clockwise"></i> Restart
+                        </button>
+                        <button class="btn btn-outline" id="btn-report-bug"
+                            style="padding: 6px; font-size: 11px; justify-content: center; color: var(--accent-red); border-color: rgba(218, 41, 28, 0.3);">
+                            <i class="ph ph-bug"></i> Report Bug
+                        </button>
+                        <button class="btn btn-outline" id="btn-reset-golden"
+                            style="padding: 6px; font-size: 11px; justify-content: center; color: var(--accent-orange, #f97316); border-color: rgba(249, 115, 22, 0.3);">
+                            <i class="ph ph-arrow-counter-clockwise"></i> Reset to Golden
+                        </button>
+                        <button class="btn btn-outline" id="btn-reset-examples"
+                            style="padding: 6px; font-size: 11px; justify-content: center; color: var(--text-muted); border-color: var(--border-color);">
+                            <i class="ph ph-arrow-counter-clockwise"></i> Reset to Examples
+                        </button>
+                    </div>
+                </details>
+
+                <nav class="sidebar-menu"
+                    style="border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; padding-top: 16px;">
+                    <a href="/" class="btn btn-menu active">
+                        <i class="ph ph-command"></i> Mission Control
+                    </a>
+                    <a href="/template/" class="btn btn-menu">
+                        <i class="ph ph-tree-structure"></i> Master Attributes
+                    </a>
+                    <a href="/library/" class="btn btn-menu">
+                        <i class="ph ph-books"></i> Parts Library Editor
+                    </a>
+                    <a href="/builder/" class="btn btn-menu">
+                        <i class="ph ph-magic-wand"></i> Model Builder
+                    </a>
+                    <a href="/guide/" class="btn btn-menu">
+                        <i class="ph ph-list-checks"></i> Build Guide
+                    </a>
+                    <a href="/audit/" class="btn btn-menu">
+                        <i class="ph ph-clipboard-text"></i> Build Audit
+                    </a>
+                </nav>
+
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <main class="main-content">
+
+            <header class="topbar">
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button class="mobile-nav-toggle" id="mobile-nav-toggle"
+                            style="display:none; background:none; border:none; cursor:pointer; color:var(--text-main);">
+                            <i class="ph ph-list" style="font-size:28px;"></i>
+                        </button>
+                        <h1 class="page-title">Mission Control</h1>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle dark mode"
+                            aria-label="Toggle dark mode">
+                            <i class="ph ph-moon" id="dark-mode-icon"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-body">
+
+                <!-- Hero Section -->
+                <section class="mc-hero">
+                    <div class="mc-hero-text">
+                        <h2 class="mc-hero-title">Welcome to <span class="mc-brand">DroneClear</span></h2>
+                        <p class="mc-hero-subtitle">
+                            Enterprise drone component management, build assembly guides, and airworthiness verification.
+                            Define parts, validate compatibility, document builds, and maintain full audit trails.
+                        </p>
+                    </div>
+                    <div class="mc-hero-graphic">
+                        <i class="ph ph-drone"></i>
+                    </div>
+                </section>
+
+                <!-- Quick Stats Row -->
+                <section class="mc-stats-row" id="mc-stats-row">
+                    <div class="mc-stat-card">
+                        <i class="ph ph-cpu"></i>
+                        <div class="mc-stat-value" id="stat-parts">--</div>
+                        <div class="mc-stat-label">Components</div>
+                    </div>
+                    <div class="mc-stat-card">
+                        <i class="ph ph-folders"></i>
+                        <div class="mc-stat-value" id="stat-categories">--</div>
+                        <div class="mc-stat-label">Categories</div>
+                    </div>
+                    <div class="mc-stat-card">
+                        <i class="ph ph-drone"></i>
+                        <div class="mc-stat-value" id="stat-models">--</div>
+                        <div class="mc-stat-label">Drone Models</div>
+                    </div>
+                    <div class="mc-stat-card">
+                        <i class="ph ph-list-checks"></i>
+                        <div class="mc-stat-value" id="stat-guides">--</div>
+                        <div class="mc-stat-label">Build Guides</div>
+                    </div>
+                </section>
+
+                <!-- Module Cards Grid -->
+                <section class="mc-section">
+                    <h3 class="mc-section-title">
+                        <i class="ph ph-squares-four"></i> Modules
+                    </h3>
+                    <div class="mc-cards-grid">
+
+                        <!-- Master Attributes -->
+                        <a href="/template/" class="mc-module-card" data-accent="red">
+                            <div class="mc-card-icon">
+                                <i class="ph ph-tree-structure"></i>
+                            </div>
+                            <div class="mc-card-body">
+                                <h4 class="mc-card-title">Master Attributes</h4>
+                                <p class="mc-card-desc">
+                                    Define component categories, technical attributes, and compatibility constraint rules.
+                                    The schema blueprint for the entire parts database.
+                                </p>
+                            </div>
+                            <div class="mc-card-action">
+                                <span class="mc-launch-btn">Launch <i class="ph ph-arrow-right"></i></span>
+                            </div>
+                        </a>
+
+                        <!-- Parts Library Editor -->
+                        <a href="/library/" class="mc-module-card" data-accent="blue">
+                            <div class="mc-card-icon">
+                                <i class="ph ph-books"></i>
+                            </div>
+                            <div class="mc-card-body">
+                                <h4 class="mc-card-title">Parts Library Editor</h4>
+                                <p class="mc-card-desc">
+                                    Browse, create, and edit drone components across 12 categories. Dynamic forms generated
+                                    from the Master Attributes schema with bulk import support.
+                                </p>
+                            </div>
+                            <div class="mc-card-action">
+                                <span class="mc-launch-btn">Launch <i class="ph ph-arrow-right"></i></span>
+                            </div>
+                        </a>
+
+                        <!-- Model Builder -->
+                        <a href="/builder/" class="mc-module-card" data-accent="green">
+                            <div class="mc-card-icon">
+                                <i class="ph ph-magic-wand"></i>
+                            </div>
+                            <div class="mc-card-body">
+                                <h4 class="mc-card-title">Model Builder</h4>
+                                <p class="mc-card-desc">
+                                    Visually assemble drone builds from the parts library. Real-time 12-check compatibility
+                                    engine validates component combinations as you build.
+                                </p>
+                            </div>
+                            <div class="mc-card-action">
+                                <span class="mc-launch-btn">Launch <i class="ph ph-arrow-right"></i></span>
+                            </div>
+                        </a>
+
+                        <!-- Build Guide -->
+                        <a href="/guide/" class="mc-module-card" data-accent="cyan">
+                            <div class="mc-card-icon">
+                                <i class="ph ph-list-checks"></i>
+                            </div>
+                            <div class="mc-card-body">
+                                <h4 class="mc-card-title">Build Guide</h4>
+                                <p class="mc-card-desc">
+                                    Create and follow step-by-step assembly instructions. Photo capture, 3D STL viewer,
+                                    media carousel, and complete build session tracking.
+                                </p>
+                            </div>
+                            <div class="mc-card-action">
+                                <span class="mc-launch-btn">Launch <i class="ph ph-arrow-right"></i></span>
+                            </div>
+                        </a>
+
+                        <!-- Build Audit -->
+                        <a href="/audit/" class="mc-module-card" data-accent="amber">
+                            <div class="mc-card-icon">
+                                <i class="ph ph-clipboard-text"></i>
+                            </div>
+                            <div class="mc-card-body">
+                                <h4 class="mc-card-title">Build Audit</h4>
+                                <p class="mc-card-desc">
+                                    Enterprise-grade build verification. SHA-256 photo hashing, immutable event timeline,
+                                    bill of materials, and data integrity checks.
+                                </p>
+                            </div>
+                            <div class="mc-card-action">
+                                <span class="mc-launch-btn">Launch <i class="ph ph-arrow-right"></i></span>
+                            </div>
+                        </a>
+
+                        <!-- FPV Academy (Coming Soon) -->
+                        <div class="mc-module-card mc-card-coming-soon" data-accent="purple">
+                            <div class="mc-coming-soon-badge">Coming Soon</div>
+                            <div class="mc-card-icon">
+                                <i class="ph ph-graduation-cap"></i>
+                            </div>
+                            <div class="mc-card-body">
+                                <h4 class="mc-card-title">FPV Academy</h4>
+                                <p class="mc-card-desc">
+                                    Interactive learning hub for FPV drone knowledge. Tutorials, compatibility reference,
+                                    soldering guides, and certification pathways.
+                                </p>
+                            </div>
+                            <div class="mc-card-action">
+                                <span class="mc-launch-btn mc-disabled">Coming Soon</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- System Overview -->
+                <section class="mc-section mc-overview">
+                    <h3 class="mc-section-title">
+                        <i class="ph ph-info"></i> About DroneClear
+                    </h3>
+                    <p class="mc-overview-text">
+                        DroneClear Configurator is an enterprise-grade internal tool for managing FPV drone components,
+                        validating build compatibility, creating step-by-step assembly guides, and maintaining complete
+                        audit trails. The platform supports over 3,000 real components across 12 categories, with a
+                        real-time compatibility engine that checks mounting patterns, voltage ranges, connector types,
+                        and more. Every build session is tracked with serial numbers, timestamped events, and
+                        SHA-256 verified photo evidence for airworthiness documentation.
+                    </p>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Bug Report Modal -->
+    <div id="bug-report-modal" class="modal-overlay hidden" style="z-index: 9999;">
+        <div class="modal-content" style="max-width: 500px; padding: 24px; position: relative;">
+            <div class="modal-title-area" style="margin-bottom: 16px;">
+                <h2 style="font-size: 20px; color: var(--text-main); display:flex; align-items:center; gap:8px;">
+                    <i class="ph ph-bug" style="color: var(--accent-red);"></i> Submit Bug Report
+                </h2>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">Found an issue? Let us know.</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <input type="text" id="bug-title-input" placeholder="Brief issue description..."
+                    style="width:100%; padding:10px; background:var(--bg-dark); border:1px solid var(--border-color); color:var(--text-main); border-radius:var(--radius-sm);">
+                <textarea id="bug-desc-input" rows="4" placeholder="Steps to reproduce..."
+                    style="width:100%; padding:10px; background:var(--bg-dark); border:1px solid var(--border-color); color:var(--text-main); border-radius:var(--radius-sm); resize:vertical;"></textarea>
+            </div>
+            <div class="modal-footer" style="margin-top:20px; display:flex; gap:12px; justify-content:flex-end;">
+                <button class="btn btn-outline" id="btn-cancel-bug">Cancel</button>
+                <button class="btn btn-primary" id="btn-submit-bug">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Maintenance Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnRestart = document.getElementById('btn-restart-server');
+            const btnReport = document.getElementById('btn-report-bug');
+            const btnResetGolden = document.getElementById('btn-reset-golden');
+            const btnResetExamples = document.getElementById('btn-reset-examples');
+            const bugModal = document.getElementById('bug-report-modal');
+            const btnCancelBug = document.getElementById('btn-cancel-bug');
+            const btnSubmitBug = document.getElementById('btn-submit-bug');
+            const titleInput = document.getElementById('bug-title-input');
+            const descInput = document.getElementById('bug-desc-input');
+
+            if (btnRestart) {
+                btnRestart.addEventListener('click', async () => {
+                    const originalText = btnRestart.innerHTML;
+                    btnRestart.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Restarting...';
+                    try {
+                        const res = await fetch('/api/maintenance/restart/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        if (res.ok) {
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            alert('Failed to restart server.');
+                            btnRestart.innerHTML = originalText;
+                        }
+                    } catch (e) {
+                        alert('Error connecting to backend.');
+                        btnRestart.innerHTML = originalText;
+                    }
+                });
+            }
+
+            if (btnReport && bugModal) {
+                btnReport.addEventListener('click', () => {
+                    bugModal.classList.remove('hidden');
+                    titleInput.value = '';
+                    descInput.value = '';
+                    titleInput.focus();
+                });
+            }
+
+            if (btnCancelBug && bugModal) {
+                btnCancelBug.addEventListener('click', () => {
+                    bugModal.classList.add('hidden');
+                });
+            }
+
+            if (btnSubmitBug) {
+                btnSubmitBug.addEventListener('click', async () => {
+                    if (!titleInput.value.trim()) {
+                        alert("Please enter a brief description.");
+                        return;
+                    }
+                    const originalText = btnSubmitBug.innerHTML;
+                    btnSubmitBug.innerHTML = 'Submitting...';
+                    btnSubmitBug.disabled = true;
+
+                    try {
+                        const res = await fetch('/api/maintenance/bug-report/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                title: titleInput.value.trim(),
+                                description: descInput.value.trim()
+                            })
+                        });
+                        if (res.ok) {
+                            bugModal.classList.add('hidden');
+                            alert("Bug report submitted successfully.");
+                        } else {
+                            alert('Failed to submit bug report.');
+                        }
+                    } catch (e) {
+                        alert('Error connecting to backend.');
+                    } finally {
+                        btnSubmitBug.innerHTML = originalText;
+                        btnSubmitBug.disabled = false;
+                    }
+                });
+            }
+
+            if (btnResetGolden) {
+                btnResetGolden.addEventListener('click', async () => {
+                    if (!confirm('This will DELETE all current parts and drone models, then re-import from the golden schema file.\n\nAre you sure?')) return;
+                    const originalText = btnResetGolden.innerHTML;
+                    btnResetGolden.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Resetting...';
+                    btnResetGolden.disabled = true;
+                    try {
+                        const res = await fetch('/api/maintenance/reset-to-golden/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '',
+                            }
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            alert(`Reset complete!\n\nCreated: ${data.created.categories} categories, ${data.created.components} components, ${data.created.drone_models} drone models.`);
+                            window.location.reload();
+                        } else {
+                            alert('Reset failed: ' + (data.error || 'Unknown error'));
+                        }
+                    } catch (e) {
+                        alert('Error connecting to backend.');
+                    } finally {
+                        btnResetGolden.innerHTML = originalText;
+                        btnResetGolden.disabled = false;
+                    }
+                });
+            }
+
+            if (btnResetExamples) {
+                btnResetExamples.addEventListener('click', async () => {
+                    if (!confirm('This will DELETE all current parts and drone models, then re-import the schema examples (1 per category).\n\nAre you sure?')) return;
+                    const originalText = btnResetExamples.innerHTML;
+                    btnResetExamples.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Resetting...';
+                    btnResetExamples.disabled = true;
+                    try {
+                        const res = await fetch('/api/maintenance/reset-to-examples/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '',
+                            }
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            alert(`Reset complete!\n\nCreated: ${data.created.categories} categories, ${data.created.components} components, ${data.created.drone_models} drone models.`);
+                            window.location.reload();
+                        } else {
+                            alert('Reset failed: ' + (data.error || 'Unknown error'));
+                        }
+                    } catch (e) {
+                        alert('Error connecting to backend.');
+                    } finally {
+                        btnResetExamples.innerHTML = originalText;
+                        btnResetExamples.disabled = false;
+                    }
+                });
+            }
+        });
+    </script>
+    <script src="{% static 'utils.js' %}?v=2"></script>
+    <script src="{% static 'mission-control.js' %}?v=1"></script>
+    <script>
+        (function () {
+            function applyTheme(dark) {
+                document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+                const icon = document.getElementById('dark-mode-icon');
+                const btn = document.getElementById('dark-mode-toggle');
+                if (icon) icon.className = dark ? 'ph ph-sun' : 'ph ph-moon';
+                if (btn) btn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+            }
+            document.getElementById('dark-mode-toggle')?.addEventListener('click', function () {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                applyTheme(!isDark);
+                localStorage.setItem('dc-theme', !isDark ? 'dark' : 'light');
+            });
+            const saved = localStorage.getItem('dc-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            applyTheme(saved ? saved === 'dark' : prefersDark);
+        })();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggle = document.getElementById('mobile-nav-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (toggle && sidebar) {
+                toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+                document.addEventListener('click', (e) => {
+                    if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !toggle.contains(e.target))
+                        sidebar.classList.remove('open');
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
